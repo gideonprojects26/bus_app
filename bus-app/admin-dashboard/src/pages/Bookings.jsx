@@ -49,7 +49,7 @@ export default function BookingsPage() {
       <div style={{ background: 'var(--color-black-light)', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <<tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
               {['Rider', 'Route', 'Pickup', 'Seats', 'Fare', 'Status', 'Actions'].map((h) => (
                 <th key={h} style={{ textAlign: 'left', padding: '14px 16px', fontSize: 12, color: 'var(--color-grey)' }}>{h}</th>
               ))}
@@ -57,7 +57,8 @@ export default function BookingsPage() {
           </thead>
           <tbody>
             {filtered.map((booking) => (
-              <td style={cellStyle}>{booking.User?.fullName || '—'}</td>
+              <tr key={booking.id}>
+                <td style={cellStyle}>{booking.User?.fullName || '—'}</td>
                 <td style={cellStyle}>{booking.routeName || '—'}</td>
                 <td style={cellStyle}>{booking.pickupStop || '—'}</td>
                 <td style={cellStyle}>{booking.seatCount}</td>
