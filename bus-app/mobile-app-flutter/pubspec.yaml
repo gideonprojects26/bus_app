@@ -19,6 +19,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
   webview_flutter: ^4.10.0
+  flutter_launcher_icons: ^0.14.1
 
 
 dev_dependencies:
@@ -31,3 +32,9 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21

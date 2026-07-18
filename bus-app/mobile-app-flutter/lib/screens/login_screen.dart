@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
 
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -64,12 +65,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
-                  controller: _emailController,
+                  controller: _passwordController,
                   style: const TextStyle(color: AppColors.white),
-                  decoration: const InputDecoration(hintText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    hintText: 'Password',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: AppColors.grey,
+                        size: 20,
+                      ),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
                   validator: (value) =>
-                      (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                      (value == null || value.length < 6) ? 'Min 6 characters' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

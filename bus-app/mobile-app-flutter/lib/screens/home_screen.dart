@@ -49,32 +49,32 @@ class HomeScreen extends StatelessWidget {
                 childAspectRatio: 1.3,
                 children: [
                   QuickActionButton(
-                    icon: Icons.map_outlined,
-                    label: 'Track Bus',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TrackingScreen()),
-                    ),
-                  ),
-                  QuickActionButton(
-                    icon: Icons.route_outlined,
-                    label: 'Routes',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RoutesScreen()),
-                    ),
-                  ),
-                  QuickActionButton(
                     icon: Icons.confirmation_number_outlined,
-                    label: 'Bookings',
+                    label: 'Book Yourself a Tour',
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const BookingScreen()),
                     ),
                   ),
                   QuickActionButton(
+                    icon: Icons.route_outlined,
+                    label: 'Our Tour Routes',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RoutesScreen()),
+                    ),
+                  ),
+                  QuickActionButton(
+                    icon: Icons.map_outlined,
+                    label: 'Tour Bus Locations',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TrackingScreen()),
+                    ),
+                  ),
+                  QuickActionButton(
                     icon: Icons.directions_bus_filled_outlined,
-                    label: 'Rent a Bus',
+                    label: 'Rent the Bus',
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const RentBusScreen()),
