@@ -35,9 +35,6 @@ class QuickActionButton extends StatelessWidget {
                 color: AppColors.yellow.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              // Padding keeps the image from touching the circle's
-              // edge, so it reads as a framed icon rather than a
-              // cropped photo bleeding to the boundary.
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(imagePath, fit: BoxFit.contain),
