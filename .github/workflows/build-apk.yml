@@ -28,6 +28,7 @@ jobs:
       - name: Install Dependencies
         run: |
           cd bus-app/mobile-app-flutter
+          flutter clean
           flutter pub get
 
       - name: Build Production APK
