@@ -3,13 +3,13 @@ import '../utils/app_colors.dart';
 import 'app_card_shadow.dart';
 
 class QuickActionButton extends StatelessWidget {
-  final IconData icon;
+  final String imagePath;
   final String label;
   final VoidCallback onTap;
 
   const QuickActionButton({
     super.key,
-    required this.icon,
+    required this.imagePath,
     required this.label,
     required this.onTap,
   });
@@ -21,7 +21,7 @@ class QuickActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: AppColors.black2,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
           boxShadow: AppCardShadow.soft,
@@ -35,7 +35,13 @@ class QuickActionButton extends StatelessWidget {
                 color: AppColors.yellow.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.yellow, size: 22),
+              // Padding keeps the image from touching the circle's
+              // edge, so it reads as a framed icon rather than a
+              // cropped photo bleeding to the boundary.
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Image.asset(imagePath, fit: BoxFit.contain),
+              ),
             ),
             const SizedBox(height: 10),
             Text(
