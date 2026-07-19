@@ -27,7 +27,7 @@ class AuthProvider with ChangeNotifier {
     // play, even when the session check itself finishes almost
     // instantly (as it usually does with local storage).
     final sessionCheck = _readSavedSession();
-    final minimumDisplayTime = Future.delayed(const Duration(milliseconds: 3200));
+    final minimumDisplayTime = Future.delayed(const Duration(milliseconds: 2100));
 
     await Future.wait([sessionCheck, minimumDisplayTime]);
 
