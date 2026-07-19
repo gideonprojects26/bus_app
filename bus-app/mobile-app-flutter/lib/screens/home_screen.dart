@@ -49,7 +49,7 @@ class HomeScreen extends StatelessWidget {
                 childAspectRatio: 1.3,
                 children: [
                   QuickActionButton(
-                    icon: Icons.confirmation_number_outlined,
+                    imagePath: 'assets/images/book.png',
                     label: 'Book Yourself a Tour',
                     onTap: () => Navigator.push(
                       context,
@@ -57,7 +57,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   QuickActionButton(
-                    icon: Icons.route_outlined,
+                    imagePath: 'assets/images/tour.png',
                     label: 'Our Tour Routes',
                     onTap: () => Navigator.push(
                       context,
@@ -65,7 +65,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   QuickActionButton(
-                    icon: Icons.map_outlined,
+                    imagePath: 'assets/images/track.png',
                     label: 'Tour Bus Locations',
                     onTap: () => Navigator.push(
                       context,
@@ -73,7 +73,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   QuickActionButton(
-                    icon: Icons.directions_bus_filled_outlined,
+                    imagePath: 'assets/images/rent.png',
                     label: 'Rent the Bus',
                     onTap: () => Navigator.push(
                       context,
