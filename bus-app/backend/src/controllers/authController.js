@@ -4,24 +4,19 @@ const generateToken = require('../utils/generateToken');
 // @route POST /api/auth/signup
 const signup = async (req, res) => {
   try {
-    const { fullName, email, phone, password, role } = req.body;
+    const { fullName, phone, password } = req.body;
 
-    if (!fullName || !email || !phone || !password) {
-      return res.status(400).json({ message: 'All fields are required.' });
+    if (!fullName || !phone || !password) {
+      return res.status(400).json({ message: 'Full name, phone number, and password are required.' });
     }
 
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await User.findOne({ where: { phone } });
     if (existingUser) {
-      return res.status(409).json({ message: 'Email already in use.' });
+      return res.status(409).json({ message: 'Phone number already in use.' });
     }
 
-    // SECURITY: role is never taken from the request body. Every public
-    // signup is forced to 'rider' regardless of what the client sends.
-    // Admin accounts must be created through a separate, protected process
-    // (see createAdminAccount below), not through open signup.
     const user = await User.create({
       fullName,
-      email,
       phone,
       password,
       role: 'rider',
@@ -35,7 +30,7 @@ const signup = async (req, res) => {
       user: {
         id: user.id,
         fullName: user.fullName,
-        email: user.email,
+        phone: user.phone,
         role: user.role,
       },
     });
@@ -48,20 +43,20 @@ const signup = async (req, res) => {
 // @route POST /api/auth/login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { phone, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
+    if (!phone || !password) {
+      return res.status(400).json({ message: 'Phone number and password are required.' });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { phone } });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password.' });
+      return res.status(401).json({ message: 'Invalid phone number or password.' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password.' });
+      return res.status(401).json({ message: 'Invalid phone number or password.' });
     }
 
     const token = generateToken(user);
@@ -72,7 +67,7 @@ const login = async (req, res) => {
       user: {
         id: user.id,
         fullName: user.fullName,
-        email: user.email,
+        phone: user.phone,
         role: user.role,
       },
     });
@@ -82,45 +77,5 @@ const login = async (req, res) => {
   }
 };
 
-// Add this before module.exports
-const createAdmin = async (req, res) => {
-  try {
-    const { fullName, email, phone, password } = req.body;
-
-    if (!fullName || !email || !phone || !password) {
-      return res.status(400).json({ message: 'All fields are required.' });
-    }
-
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(409).json({ message: 'Email already in use.' });
-    }
-
-    const admin = await User.create({
-      fullName,
-      email,
-      phone,
-      password,
-      role: 'admin', // Force role to be admin
-    });
-
-    const token = generateToken(admin);
-
-    res.status(201).json({
-      message: 'Admin account created successfully.',
-      token,
-      user: {
-        id: admin.id,
-        fullName: admin.fullName,
-        email: admin.email,
-        role: admin.role,
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error during admin creation.' });
-  }
-};
-
 // Update your export line to include createAdmin
-module.exports = { signup, login, createAdmin };
+module.exports = { signup, login };
