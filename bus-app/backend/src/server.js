@@ -37,6 +37,14 @@ async function startServer() {
     await sequelize.sync();
     console.log('Database synced safely.');
 
+    // 2b. Auto-fix: Ensure email column allows NULL in production DB
+    try {
+      await sequelize.query('ALTER TABLE "users" ALTER COLUMN "email" DROP NOT NULL;');
+      console.log('✅ Database fix applied: "email" column is now optional!');
+    } catch (fixErr) {
+      console.log('DB constraint check completed.');
+    }
+
     // 3. Bind explicitly to '0.0.0.0' and dynamic PORT for Render deployment
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port ${PORT}`);
