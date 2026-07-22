@@ -11,6 +11,33 @@ import 'terms_conditions_screen.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  void _confirmLogout(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.black2,
+        title: const Text('Log Out', style: TextStyle(color: AppColors.white)),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: AppColors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              authProvider.logout();
+            },
+            child: const Text('Logout', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -19,6 +46,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        title: const Text('Profile'),
       ),
       body: SafeArea(
         child: ListView(
@@ -38,7 +66,7 @@ class ProfileScreen extends StatelessWidget {
                     style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    user?.email ?? '',
+                    user?.phone ?? '',
                     style: const TextStyle(color: AppColors.grey, fontSize: 13),
                   ),
                 ],
@@ -75,7 +103,7 @@ class ProfileScreen extends StatelessWidget {
               icon: Icons.logout,
               label: 'Logout',
               iconColor: AppColors.red,
-              onTap: () => authProvider.logout(),
+              onTap: () => _confirmLogout(context, authProvider),
             ),
           ],
         ),

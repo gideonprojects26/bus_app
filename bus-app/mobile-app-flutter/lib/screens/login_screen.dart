@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(
-      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
       password: _passwordController.text,
     );
 
@@ -65,6 +65,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
+                  controller: _phoneController,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: const InputDecoration(hintText: 'Phone Number'),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) =>
+                      (value == null || value.length < 9) ? 'Enter a valid phone number' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
                   controller: _passwordController,
                   style: const TextStyle(color: AppColors.white),
                   obscureText: _obscurePassword,
@@ -79,15 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (value) =>
-                      (value == null || value.length < 6) ? 'Min 6 characters' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  style: const TextStyle(color: AppColors.white),
-                  decoration: const InputDecoration(hintText: 'Password'),
-                  obscureText: true,
                   validator: (value) =>
                       (value == null || value.length < 6) ? 'Min 6 characters' : null,
                 ),

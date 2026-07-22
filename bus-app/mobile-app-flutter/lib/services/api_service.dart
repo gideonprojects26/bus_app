@@ -5,7 +5,6 @@ import '../utils/constants.dart';
 class ApiService {
   static Future<Map<String, dynamic>> signup({
     required String fullName,
-    required String email,
     required String phone,
     required String password,
   }) async {
@@ -14,7 +13,6 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'fullName': fullName,
-        'email': email,
         'phone': phone,
         'password': password,
       }),
@@ -30,13 +28,13 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> login({
-    required String email,
+    required String phone,
     required String password,
   }) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}/auth/login'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({'phone': phone, 'password': password}),
     );
 
     final data = jsonDecode(response.body);

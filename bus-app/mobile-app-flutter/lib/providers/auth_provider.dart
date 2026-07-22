@@ -40,7 +40,7 @@ class AuthProvider with ChangeNotifier {
     final savedToken = prefs.getString('auth_token');
     final savedUserId = prefs.getString('user_id');
     final savedUserName = prefs.getString('user_full_name');
-    final savedUserEmail = prefs.getString('user_email');
+    final savedUserPhone = prefs.getString('user_phone');
     final savedUserRole = prefs.getString('user_role');
 
     if (savedToken != null && savedUserId != null) {
@@ -48,7 +48,7 @@ class AuthProvider with ChangeNotifier {
       _user = UserModel(
         id: savedUserId,
         fullName: savedUserName ?? '',
-        email: savedUserEmail ?? '',
+        phone: savedUserPhone ?? '',
         role: savedUserRole ?? 'rider',
       );
     }
@@ -59,7 +59,7 @@ class AuthProvider with ChangeNotifier {
     await prefs.setString('auth_token', token);
     await prefs.setString('user_id', user.id);
     await prefs.setString('user_full_name', user.fullName);
-    await prefs.setString('user_email', user.email);
+    await prefs.setString('user_phone', user.phone);
     await prefs.setString('user_role', user.role);
   }
 
@@ -74,7 +74,6 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> signup({
     required String fullName,
-    required String email,
     required String phone,
     required String password,
   }) async {
@@ -82,12 +81,7 @@ class AuthProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await ApiService.signup(
-      fullName: fullName,
-      email: email,
-      phone: phone,
-      password: password,
-    );
+    final result = await ApiService.signup(fullName: fullName, phone: phone, password: password);
 
     _isLoading = false;
 
@@ -104,12 +98,12 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> login({required String email, required String password}) async {
+  Future<bool> login({required String phone, required String password}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    final result = await ApiService.login(email: email, password: password);
+    final result = await ApiService.login(phone: phone, password: password);
 
     _isLoading = false;
 

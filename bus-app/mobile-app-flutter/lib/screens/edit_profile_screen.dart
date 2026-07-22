@@ -14,7 +14,6 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _emailController;
   late TextEditingController _phoneController;
   bool _isSaving = false;
 
@@ -23,8 +22,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     _nameController = TextEditingController(text: user?.fullName ?? '');
-    _emailController = TextEditingController(text: user?.email ?? '');
-    _phoneController = TextEditingController(text: '');
+    _phoneController = TextEditingController(text: user?.phone ?? '');
   }
 
   Future<void> _handleSave() async {
@@ -50,7 +48,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -77,16 +74,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   style: const TextStyle(color: AppColors.white),
                   decoration: const InputDecoration(hintText: 'Enter your full name'),
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 18),
-                const Text('Email', style: TextStyle(color: AppColors.grey, fontSize: 12)),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _emailController,
-                  style: const TextStyle(color: AppColors.white),
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(hintText: 'Enter your email'),
-                  validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                 ),
                 const SizedBox(height: 18),
                 const Text('Phone Number', style: TextStyle(color: AppColors.grey, fontSize: 12)),

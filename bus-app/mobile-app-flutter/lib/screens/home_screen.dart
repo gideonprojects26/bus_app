@@ -19,13 +19,10 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Hi, ${authProvider.user?.fullName.split(' ').first ?? "Rider"}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.red),
-            onPressed: () => authProvider.logout(),
-          ),
-        ],
+        title: Text(
+          'Hi, ${authProvider.user?.fullName.split(' ').first ?? "Rider"}',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

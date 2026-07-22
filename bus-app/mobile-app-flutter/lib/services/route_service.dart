@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 import '../models/backend_route_model.dart';
@@ -18,12 +19,12 @@ class RouteService {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((json) => BackendRoute.fromJson(json)).toList();
       } else {
-        print('DEBUG: Request failed with status: ${response.statusCode}');
-        print('DEBUG: Response body: ${response.body}');
+        debugPrint('DEBUG: Request failed with status: ${response.statusCode}');
+        debugPrint('DEBUG: Response body: ${response.body}');
         throw Exception('Failed to load routes. Status: ${response.statusCode}');
       }
     } catch (e) {
-      print('DEBUG: Exception caught: $e');
+      debugPrint('DEBUG: Exception caught: $e');
       throw Exception('Network error: $e');
     }
   }

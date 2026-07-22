@@ -5,7 +5,7 @@ class MockTourData {
     TourRouteModel(
       id: 'city_tour',
       name: 'City Highlights Tour',
-      description: 'Origin: BMK House to Independence Grounds\nDistance: 25.5 km | Duration: 240 mins\nPrice: UGX 50,000',
+      description: 'Origin: BMK House to Independence Grounds\nDistance: 25.5 km | Duration: 240 mins\nPrice: UGX 50,000 \nInternational Price: USD 35',
       stops: [
         TourStop(name: 'Serena Hotel', latitude: 0.3150, longitude: 32.5838),
         TourStop(name: 'Bank of Uganda', latitude: 0.3155, longitude: 32.5823),
@@ -32,7 +32,7 @@ class MockTourData {
     TourRouteModel(
       id: 'religious_tour', // This matches your color logic in tracking_screen.dart
       name: 'Religious Tour',
-      description: 'Origin: BMK Café to Namugongo Martyrs Shrine\nDistance: 30.0 km | Duration: 180 mins\nPrice: UGX 40,000',
+      description: 'Origin: BMK Café to Namugongo Martyrs Shrine\nDistance: 30.0 km | Duration: 180 mins\nPrice: UGX 50,000 \nInternational Price: USD 35',
       stops: [
         TourStop(name: 'Lubaga Cathedral', latitude: 0.3037, longitude: 32.5536),
         TourStop(name: 'Namirembe Cathedral', latitude: 0.3085, longitude: 32.5557),

@@ -15,7 +15,6 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -38,7 +37,6 @@ class _SignupScreenState extends State<SignupScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.signup(
       fullName: _nameController.text.trim(),
-      email: _emailController.text.trim(),
       phone: _phoneController.text.trim(),
       password: _passwordController.text,
     );
@@ -76,13 +74,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  style: const TextStyle(color: AppColors.white),
-                  decoration: const InputDecoration(hintText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
-                ),
+                
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _phoneController,

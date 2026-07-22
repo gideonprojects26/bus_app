@@ -20,7 +20,7 @@ class PaymentProcessingHelper {
       draft: draft,
       paymentMethodChosen: paymentMethodChosen,
       phoneNumber: phoneNumber,
-      email: authProvider.user?.email ?? '',
+      email: '${authProvider.user?.phone ?? "guest"}@bustours.app',
     );
 
     if (!context.mounted) return;
