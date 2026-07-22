@@ -1,7 +1,7 @@
 const { User } = require('../models');
 const generateToken = require('../utils/generateToken');
 
-// @route POST /api/auth/signup
+// @route POST /api/auth/signup (Riders Only)
 const signup = async (req, res) => {
   try {
     const { fullName, phone, password } = req.body;
@@ -19,7 +19,7 @@ const signup = async (req, res) => {
       fullName,
       phone,
       password,
-      role: 'rider',
+      role: 'rider', // Standard users always default to rider
     });
 
     const token = generateToken(user);
@@ -77,5 +77,4 @@ const login = async (req, res) => {
   }
 };
 
-// Update your export line to include createAdmin
 module.exports = { signup, login };

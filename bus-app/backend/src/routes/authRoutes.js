@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login, createAdmin } = require('../controllers/authController');
+const { signup, login } = require('../controllers/authController');
 
+// Clean and simple auth routes for riders/app users
 router.post('/signup', signup);
 router.post('/login', login);
-router.post('/create-admin', createAdmin);
 
 module.exports = router;
