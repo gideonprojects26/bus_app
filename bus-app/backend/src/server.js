@@ -27,9 +27,24 @@ app.use('/api/rentals', rentalRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-sequelize.sync({ force: true })
-  .then(() => {
-    console.log('Database connected and synced.');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => console.error('DB connection error:', err));
+async function startServer() {
+  try {
+    // 1. Verify connection to the database
+    await sequelize.authenticate();
+    console.log('Database connected successfully.');
+
+    // 2. Safe sync: creates missing tables without dropping or wiping existing data
+    await sequelize.sync();
+    console.log('Database synced safely.');
+
+    // 3. Bind explicitly to '0.0.0.0' and dynamic PORT for Render deployment
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Fatal DB connection error on startup:', err);
+    process.exit(1);
+  }
+}
+
+startServer();
