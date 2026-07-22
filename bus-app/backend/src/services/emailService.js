@@ -1,3 +1,4 @@
+/*
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -33,6 +34,44 @@ const sendRentalRequestEmail = async (rental) => {
     subject: `New Rental Request from ${rental.fullName}`,
     html,
   });
+};
+
+module.exports = { sendRentalRequestEmail };
+*/
+const { Resend } = require('resend');
+
+// Initialize Resend with your API key from environment variables
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const sendRentalRequestEmail = async (rental) => {
+  try {
+    const data = await resend.emails.send({
+      // While testing, you can use Resend's default domain 'onboarding@resend.dev' 
+      // (it sends emails safely to the email address tied to your Resend account)
+      from: 'Bus App <onboarding@resend.dev>',
+      to: ['your-admin-email@gmail.com'], // Replace with your actual receiving inbox
+      subject: 'New Bus Rental Inquiry',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #2563eb;">New Rental Request Received</h2>
+          <p>You have a new booking request from your app:</p>
+          <hr style="border: none; border-top: 1px solid #eee;" />
+          <p><strong>Name:</strong> ${rental.fullName}</p>
+          <p><strong>Phone:</strong> ${rental.phone}</p>
+          <p><strong>Passenger Count:</strong> ${rental.passengerCount}</p>
+          <p><strong>Date Needed:</strong> ${rental.neededDate}</p>
+          <p><strong>Additional Details:</strong> ${rental.additionalDetails || 'None provided'}</p>
+          <hr style="border: none; border-top: 1px solid #eee;" />
+          <p style="font-size: 12px; color: #666;">This request is safely saved on your admin dashboard.</p>
+        </div>
+      `,
+    });
+
+    console.log('Email sent successfully via Resend:', data);
+  } catch (error) {
+    console.error('Resend email failed:', error);
+    throw error;
+  }
 };
 
 module.exports = { sendRentalRequestEmail };

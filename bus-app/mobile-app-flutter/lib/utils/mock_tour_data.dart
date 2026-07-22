@@ -1,42 +1,48 @@
 import '../models/tour_route_model.dart';
-import '../models/stop_model.dart';
-import '../models/schedule_model.dart';
 
-// TEMPORARY mock data — replace with real API calls once
-// the backend Routes endpoint is built.
 class MockTourData {
-  static List<TourRouteModel> tours = [
+  static final List<TourRouteModel> tours = [
     TourRouteModel(
-      id: 'religious_tour',
-      name: 'Religious Tour',
-      description: 'Visit the historic religious sites of Kampala.',
+      id: 'city_tour',
+      name: 'City Highlights Tour',
+      description: 'Origin: BMK House to Independence Grounds\nDistance: 25.5 km | Duration: 240 mins\nPrice: UGX 50,000',
       stops: [
-        StopModel(name: 'Kampala Central', latitude: 0.3163, longitude: 32.5822),
-        StopModel(name: 'Rubaga Cathedral', latitude: 0.3050, longitude: 32.5560),
-        StopModel(name: 'Namirembe Cathedral', latitude: 0.3181, longitude: 32.5691),
-        StopModel(name: 'Munyonyo Martyrs Shrine', latitude: 0.2725, longitude: 32.6280),
-        StopModel(name: 'Namugongo Martyrs Shrine', latitude: 0.3833, longitude: 32.6706),
+        TourStop(name: 'Serena Hotel', latitude: 0.3150, longitude: 32.5838),
+        TourStop(name: 'Bank of Uganda', latitude: 0.3155, longitude: 32.5823),
+        TourStop(name: 'Constitution Square', latitude: 0.3153, longitude: 32.5807),
+        TourStop(name: 'Post Office', latitude: 0.3137, longitude: 32.5790),
+        TourStop(name: 'Nakasero Market', latitude: 0.3162, longitude: 32.5765),
+        TourStop(name: 'Clock Tower', latitude: 0.3111, longitude: 32.5750),
+        TourStop(name: 'Ring Road', latitude: 0.3095, longitude: 32.5738),
+        TourStop(name: 'Kabaka\'s Lake', latitude: 0.3068, longitude: 32.5602),
+        TourStop(name: 'Bulange Parliament', latitude: 0.3077, longitude: 32.5588),
+        TourStop(name: 'Lubaga Cathedral', latitude: 0.3037, longitude: 32.5536),
+        TourStop(name: 'Namirembe Cathedral', latitude: 0.3085, longitude: 32.5557),
+        TourStop(name: 'Café Javas Bakuli', latitude: 0.3128, longitude: 32.5687),
+        TourStop(name: 'Kasubi Tombs', latitude: 0.3277, longitude: 32.5572),
+        TourStop(name: 'Makerere University', latitude: 0.3350, longitude: 32.5675),
+        TourStop(name: 'Uganda Museum', latitude: 0.3356, longitude: 32.5821),
+        TourStop(name: 'Independence Grounds', latitude: 0.3162, longitude: 32.5860),
       ],
       schedule: [
-        ScheduleModel(day: 'Monday', departureTime: '08:00'),
-        ScheduleModel(day: 'Wednesday', departureTime: '08:00'),
-        ScheduleModel(day: 'Friday', departureTime: '08:00'),
+        BusSchedule(day: 'Monday - Friday', departureTime: '08:00 AM'),
+        BusSchedule(day: 'Saturday - Sunday', departureTime: '10:00 AM'),
       ],
     ),
     TourRouteModel(
-      id: 'city_highlights_tour',
-      name: 'City Highlights Tour',
-      description: 'Explore the best of Kampala in one trip.',
+      id: 'religious_tour', // This matches your color logic in tracking_screen.dart
+      name: 'Religious Tour',
+      description: 'Origin: BMK Café to Namugongo Martyrs Shrine\nDistance: 30.0 km | Duration: 180 mins\nPrice: UGX 40,000',
       stops: [
-        StopModel(name: 'Kampala City Center', latitude: 0.3163, longitude: 32.5822),
-        StopModel(name: 'Uganda Museum', latitude: 0.3316, longitude: 32.5851),
-        StopModel(name: 'Kasubi Tombs', latitude: 0.3251, longitude: 32.5522),
-        StopModel(name: 'Independence Monument', latitude: 0.3145, longitude: 32.5811),
-        StopModel(name: 'Owino Market', latitude: 0.3068, longitude: 32.5744),
+        TourStop(name: 'Lubaga Cathedral', latitude: 0.3037, longitude: 32.5536),
+        TourStop(name: 'Namirembe Cathedral', latitude: 0.3085, longitude: 32.5557),
+        TourStop(name: 'Gaddafi National Mosque', latitude: 0.3134, longitude: 32.5673),
+        TourStop(name: 'Bahá\'í Temple', latitude: 0.3638, longitude: 32.5889),
+        TourStop(name: 'Namugongo Martyrs Shrine', latitude: 0.3972, longitude: 32.6456),
       ],
       schedule: [
-        ScheduleModel(day: 'Daily', departureTime: '09:00'),
-        ScheduleModel(day: 'Daily', departureTime: '14:00'),
+        BusSchedule(day: 'Sunday', departureTime: '09:00 AM'),
+        BusSchedule(day: 'Wednesday', departureTime: '02:00 PM'),
       ],
     ),
   ];

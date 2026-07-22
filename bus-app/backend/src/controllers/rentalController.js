@@ -1,10 +1,6 @@
 const { RentalRequest } = require('../models');
 const { sendRentalRequestEmail } = require('../services/emailService');
 
-// Rider submits a rental inquiry from the app. Saved to the database
-// (so it shows on the admin dashboard) AND emailed to the admin team,
-// as requested — the two happen independently, so if email delivery
-// fails, the request is still safely saved and visible on the dashboard.
 const createRentalRequest = async (req, res) => {
   try {
     const { fullName, phone, passengerCount, neededDate, additionalDetails } = req.body;
@@ -13,6 +9,7 @@ const createRentalRequest = async (req, res) => {
       return res.status(400).json({ message: 'All required fields must be filled.' });
     }
 
+    // 1. Save to the database successfully
     const rental = await RentalRequest.create({
       fullName,
       phone,
@@ -22,15 +19,16 @@ const createRentalRequest = async (req, res) => {
       userId: req.user?.id || null,
     });
 
-    try {
-      await sendRentalRequestEmail(rental);
-    } catch (emailError) {
-      // Log but don't fail the whole request just because email didn't
-      // send — the rental request itself is still safely recorded.
-      console.error('Rental request email failed to send:', emailError.message);
-    }
-
+    // 2. Respond to the app IMMEDIATELY (Stops the loading spinner right away!)
     res.status(201).json({ message: 'Rental request submitted successfully.', rental });
+
+    // 3. Trigger email in the background WITHOUT 'await'
+    // If Render blocks the network port, it logs the error quietly 
+    // in your server terminal without locking up your user's app.
+    sendRentalRequestEmail(rental).catch((emailError) => {
+      console.error('Background email failed to send:', emailError.message);
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error submitting rental request.' });
