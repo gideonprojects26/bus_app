@@ -49,7 +49,7 @@ const sendRentalRequestEmail = async (rental) => {
       // While testing, you can use Resend's default domain 'onboarding@resend.dev' 
       // (it sends emails safely to the email address tied to your Resend account)
       from: 'Bus App <onboarding@resend.dev>',
-      to: ['your-admin-email@gmail.com'], // Replace with your actual receiving inbox
+      to: ['kampalasightseeingbus@gmail.com'], // Replace with your actual receiving inbox
       subject: 'New Bus Rental Inquiry',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
