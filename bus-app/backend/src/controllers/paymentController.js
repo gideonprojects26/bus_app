@@ -20,8 +20,7 @@ const initiatePayment = async (req, res) => {
     }
 
     // SECURITY: fare is computed here, from the Route record itself —
-    // never taken from req.body. This is the fix for the "never trust
-    // the client" gap: no request can alter the price it's charged.
+    // never taken from req.body.
     const route = await Route.findByPk(routeId);
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' });
@@ -76,12 +75,16 @@ const initiatePayment = async (req, res) => {
       return res.status(501).json({ message: 'Airtel Direct not yet implemented.' });
     }
 
+    // Fallback email ensures PesaPal API payload requirement is satisfied
+    // even if the user or request does not supply an email.
+    const customerEmail = email || req.user?.email || 'customer@busapp.com';
+
     const pesapalResponse = await pesapalService.submitOrder({
       txRef,
       amount: totalFare,
       currency,
       description: `Payment for ${route.name}`,
-      email,
+      email: customerEmail,
       phone: routing.normalizedPhone,
       firstName: req.user.fullName?.split(' ')[0] || 'Rider',
       lastName: req.user.fullName?.split(' ').slice(1).join(' ') || '',

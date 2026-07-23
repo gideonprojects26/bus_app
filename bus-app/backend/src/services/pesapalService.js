@@ -30,7 +30,6 @@ const registerIpnUrl = async (token) => {
 
 const submitOrder = async ({ txRef, amount, currency, description, email, phone, firstName, lastName }) => {
   const token = await getAccessToken();
-  const ipnId = await registerIpnUrl(token);
 
   const response = await axios.post(
     `${BASE_URL}/api/Transactions/SubmitOrderRequest`,
@@ -40,7 +39,7 @@ const submitOrder = async ({ txRef, amount, currency, description, email, phone,
       amount,
       description,
       callback_url: process.env.PESAPAL_CALLBACK_URL,
-      notification_id: ipnId,
+      notification_id: process.env.PESAPAL_NOTIFICATION_ID, // Loaded directly from env
       billing_address: {
         email_address: email,
         phone_number: phone || '',
@@ -51,7 +50,7 @@ const submitOrder = async ({ txRef, amount, currency, description, email, phone,
     { headers: { Authorization: `Bearer ${token}` } }
   );
 
-  return response.data; // contains redirect_url and order_tracking_id
+  return response.data;
 };
 
 const getTransactionStatus = async (orderTrackingId) => {

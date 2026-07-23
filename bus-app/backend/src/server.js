@@ -2,12 +2,14 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { sequelize } = require('./models');
+
 const authRoutes = require('./routes/authRoutes');
 const routeRoutes = require('./routes/routeRoutes');
 const busRoutes = require('./routes/busRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const rentalRoutes = require('./routes/rentalRoutes');
+const paymentRoutes = require('./routes/paymentRoutes'); // 👈 1. Added payment routes
 
 const app = express();
 
@@ -24,6 +26,7 @@ app.use('/api/buses', busRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rentals', rentalRoutes);
+app.use('/api/payments', paymentRoutes); // 👈 2. Mounted payment endpoint at /api/payments
 
 const PORT = process.env.PORT || 3000;
 
