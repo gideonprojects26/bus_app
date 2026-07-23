@@ -54,7 +54,13 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 
   /// Checks if the URL is our backend callback redirect
   bool _isCallbackUrl(String url) {
-    return url.contains('pesapal-callback') || url.contains('OrderTrackingId=');
+    // 1. Explicitly ignore PesaPal's own gateway domain so the checkout page loads safely
+    if (url.contains('pay.pesapal.com') || url.contains('pesapal.com/iframe')) {
+      return false;
+    }
+
+    // 2. Only intercept when redirected to our backend's callback endpoint
+    return url.contains('pesapal-callback');
   }
 
   void _checkUrlAndRedirect(String url) {
