@@ -3,8 +3,6 @@ const { v4: uuidv4 } = require('uuid');
 const { decideProvider } = require('../services/providerRouter');
 const pesapalService = require('../services/pesapalService');
 const momoService = require('../services/momoService');
-// Optional: require airtelService if you have an airtelService module
-// const airtelService = require('../services/airtelService');
 
 const initiatePayment = async (req, res) => {
   try {
@@ -35,7 +33,7 @@ const initiatePayment = async (req, res) => {
     const txRef = `booking-${uuidv4()}`;
 
     // -------------------------------------------------------------
-    // 1. CONFIGURATION CHECKS: Check credentials before calling APIs
+    // 1. CONFIGURATION CHECKS
     // -------------------------------------------------------------
     const isMomoConfigured = Boolean(process.env.MOMO_SUBSCRIPTION_KEY);
     const isAirtelConfigured = Boolean(
@@ -104,10 +102,6 @@ const initiatePayment = async (req, res) => {
     // --- AIRTEL DIRECT EXECUTION ---
     if (routing.provider === 'airtel_direct') {
       try {
-        // If airtelService is implemented, attempt pay request here:
-        // await airtelService.requestToPay({ ... });
-        
-        // If not fully set up yet, intentionally force fallback:
         throw new Error('Airtel Direct integration pending production credentials.');
       } catch (airtelError) {
         console.error('⚠️ Airtel Direct failed or unconfigured. Falling back to Pesapal:', airtelError.message);
@@ -129,6 +123,8 @@ const initiatePayment = async (req, res) => {
       firstName: req.user.fullName?.split(' ')[0] || 'Rider',
       lastName: req.user.fullName?.split(' ').slice(1).join(' ') || '',
     });
+
+    console.log('📌 Pesapal Response Object:', pesapalResponse);
 
     await booking.update({ providerTransactionId: pesapalResponse.order_tracking_id });
 
@@ -210,4 +206,42 @@ const pesapalWebhook = async (req, res) => {
   }
 };
 
-module.exports = { initiatePayment, getPaymentStatus, pesapalWebhook };
+// Handle GET redirect from Pesapal after completing payment
+const pesapalCallback = async (req, res) => {
+  try {
+    const { OrderTrackingId } = req.query;
+
+    if (OrderTrackingId) {
+      const status = await pesapalService.getTransactionStatus(OrderTrackingId);
+      if (status.payment_status_description === 'Completed') {
+        await Booking.update(
+          { paymentStatus: 'paid', status: 'confirmed' },
+          { where: { providerTransactionId: OrderTrackingId } }
+        );
+      }
+    }
+
+    // HTML response served inside Flutter WebView
+    res.send(`
+      <html>
+        <head><title>Payment Complete</title></head>
+        <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;text-align:center;">
+          <div>
+            <h2 style="color:#2e7d32;">✅ Payment Completed!</h2>
+            <p>Please wait, redirecting back to your application...</p>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('PesaPal callback error:', error.message);
+    res.status(500).send('Error processing callback.');
+  }
+};
+
+module.exports = {
+  initiatePayment,
+  getPaymentStatus,
+  pesapalWebhook,
+  pesapalCallback,
+};

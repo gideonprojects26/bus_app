@@ -23,9 +23,7 @@ class PaymentWebViewScreen extends StatefulWidget {
 
 class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   late final WebViewController _webViewController;
-
-  // Must match PESAPAL_CALLBACK_URL on the backend.
-  static const String redirectUrlPrefix = 'https://busapp.local/payment-callback';
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -35,10 +33,17 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onPageStarted: (String url) {
+            if (mounted) setState(() => _isLoading = true);
+            _checkUrlAndRedirect(url);
+          },
+          onPageFinished: (String url) {
+            if (mounted) setState(() => _isLoading = false);
+          },
           onNavigationRequest: (request) {
-            if (request.url.startsWith(redirectUrlPrefix)) {
+            if (_isCallbackUrl(request.url)) {
               _goToWaitingScreen();
-              return NavigationDecision.prevent;
+              return NavigationDecision.prevent; // Stop WebView from loading HTML
             }
             return NavigationDecision.navigate;
           },
@@ -47,7 +52,20 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       ..loadRequest(Uri.parse(widget.checkoutUrl));
   }
 
+  /// Checks if the URL is our backend callback redirect
+  bool _isCallbackUrl(String url) {
+    return url.contains('pesapal-callback') || url.contains('OrderTrackingId=');
+  }
+
+  void _checkUrlAndRedirect(String url) {
+    if (_isCallbackUrl(url)) {
+      _goToWaitingScreen();
+    }
+  }
+
   void _goToWaitingScreen() {
+    if (!mounted) return; // Prevent context errors if widget unmounted
+
     // PesaPal has redirected back, but the IPN webhook confirming the
     // final status may take a few seconds to arrive — the waiting
     // screen's polling handles that gap gracefully.
@@ -68,7 +86,15 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Complete Payment')),
-      body: WebViewWidget(controller: _webViewController),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _webViewController),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
     );
   }
 }

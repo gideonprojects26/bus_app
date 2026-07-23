@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
   static const Color grey = Color(0xFF9E9E9E);
 }
 */
-import 'package:flutter/material.dart';
 
 // Static palette values only — these are just the raw color swatches,
 // not tied to "background" or "text" roles. AppColors stays available
