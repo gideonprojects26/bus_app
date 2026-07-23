@@ -12,10 +12,11 @@ const Route = sequelize.define('Route', {
   description: { type: DataTypes.TEXT, allowNull: true },
   startPoint: { type: DataTypes.STRING, allowNull: false },
   endPoint: { type: DataTypes.STRING, allowNull: false },
-  fare: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 50000 }, // <--- ADD THIS LINE
+  fare: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 50000 },
   internationalFare: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 30 },
   stops: { type: DataTypes.JSONB, defaultValue: [] },
   schedule: { type: DataTypes.JSONB, defaultValue: [] },
+  images: { type: DataTypes.JSONB, defaultValue: [] }, // <--- Stores list of {path, caption} objects
 }, {
   tableName: 'routes',
   timestamps: true,

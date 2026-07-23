@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../utils/app_colors.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/image_carousel.dart';
 import '../widgets/quick_action_button.dart';
 import 'routes_screen.dart';
@@ -15,13 +15,16 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final theme = context.watch<ThemeProvider>();
 
     return Scaffold(
+      backgroundColor: theme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        backgroundColor: theme.background,
         title: Text(
           'Hi, ${authProvider.user?.fullName.split(' ').first ?? "Rider"}',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary),
         ),
       ),
       body: SafeArea(
@@ -32,9 +35,9 @@ class HomeScreen extends StatelessWidget {
             children: [
               const ImageCarousel(),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Quick Actions',
-                style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               GridView.count(

@@ -76,7 +76,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           children: [
                             _TourCard(tour: tour),
                             const SizedBox(height: 10),
-                            StopImageSlideshow(routeName: tour.name, stopCount: tour.stops.length),
+                            StopImageSlideshow(images: tour.images),
                           ],
                         ),
                       );

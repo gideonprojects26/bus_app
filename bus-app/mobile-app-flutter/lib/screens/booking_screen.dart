@@ -7,7 +7,10 @@ import '../widgets/app_price_text.dart';
 import '../widgets/app_back_button.dart';
 import 'payment_method_screen.dart';
 
+/// Screen allowing passengers to configure tour booking details
+/// such as route, pickup location, date, time, passenger count, and pricing tier.
 class BookingScreen extends StatefulWidget {
+  // Optional preselected route ID passed from previous screens (e.g., RoutesScreen)
   final String? preselectedRouteId;
 
   const BookingScreen({super.key, this.preselectedRouteId});
@@ -17,23 +20,27 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
+  // Master list of available tour routes fetched from backend API
   List<BackendRoute> _routes = [];
   bool _isLoadingRoutes = true;
   String? _loadError;
 
+  // Selected user options state
   BackendRoute? _selectedRoute;
   Map<String, dynamic>? _selectedStop;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   int _passengers = 1;
-  bool _isLocal = true;
+  bool _isLocal = true; // Flag distinguishing local (UGX) vs international (USD) fare
 
   @override
   void initState() {
     super.initState();
+    // Load available route data on screen initialization
     _loadRoutes();
   }
 
+  /// Fetches tour routes from the route service and auto-selects a route if preselectedRouteId was passed.
   Future<void> _loadRoutes() async {
     try {
       final routes = await RouteService.fetchRoutes();
@@ -41,6 +48,7 @@ class _BookingScreenState extends State<BookingScreen> {
         _routes = routes;
         _isLoadingRoutes = false;
         if (widget.preselectedRouteId != null) {
+          // Preselect requested route or fallback to first available
           _selectedRoute = routes.firstWhere(
             (r) => r.id == widget.preselectedRouteId,
             orElse: () => routes.first,
@@ -55,18 +63,18 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  // This is an ESTIMATE shown to the user for convenience only — the
-  // backend recalculates the authoritative total from the Route record
-  // when payment is initiated, so this number can never be tampered
-  // with to actually change what gets charged.
+  // Calculates estimated price based on passenger type (local vs international) and count.
+  // Note: Backend recalculates authoritative price on payment submission.
   double get _estimatedPrice {
     if (_selectedRoute == null) return 0;
     final rate = _isLocal ? _selectedRoute!.fare : _selectedRoute!.internationalFare;
     return rate * _passengers;
   }
 
+  // Returns active currency string based on user category
   String get _currency => _isLocal ? 'UGX' : 'USD';
 
+  /// Opens native DatePicker to select travel date
   Future<void> _pickDate() async {
     final date = await showDatePicker(
       context: context,
@@ -77,6 +85,7 @@ class _BookingScreenState extends State<BookingScreen> {
     if (date != null) setState(() => _selectedDate = date);
   }
 
+  /// Opens native TimePicker to select departure time
   Future<void> _pickTime() async {
     final time = await showTimePicker(
       context: context,
@@ -85,6 +94,7 @@ class _BookingScreenState extends State<BookingScreen> {
     if (time != null) setState(() => _selectedTime = time);
   }
 
+  /// Validates whether all mandatory fields have been filled
   bool get _canContinue =>
       _selectedRoute != null &&
       _selectedStop != null &&
@@ -92,6 +102,7 @@ class _BookingScreenState extends State<BookingScreen> {
       _selectedTime != null &&
       _passengers > 0;
 
+  /// Bundles booking state into a draft object and navigates to the Payment screen
   void _continueToPayment() {
     if (!_canContinue) return;
 
@@ -142,6 +153,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // --- Section: Route Dropdown ---
                         const Text('Route', style: TextStyle(color: AppColors.grey, fontSize: 12)),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<BackendRoute>(
@@ -149,13 +161,21 @@ class _BookingScreenState extends State<BookingScreen> {
                           dropdownColor: AppColors.black2,
                           style: const TextStyle(color: AppColors.white),
                           decoration: const InputDecoration(hintText: 'Select a route'),
-                          items: _routes.map((r) => DropdownMenuItem(value: r, child: Text(r.name))).toList(),
+                          // Explicitly typed DropdownMenuItem list to prevent type mismatches
+                          items: _routes.map<DropdownMenuItem<BackendRoute>>((r) {
+                            return DropdownMenuItem<BackendRoute>(
+                              value: r,
+                              child: Text(r.name),
+                            );
+                          }).toList(),
                           onChanged: (value) => setState(() {
                             _selectedRoute = value;
-                            _selectedStop = null;
+                            _selectedStop = null; // Reset selected stop when route changes
                           }),
                         ),
                         const SizedBox(height: 18),
+
+                        // --- Section: Pickup Stop Dropdown ---
                         const Text('Pickup Stop', style: TextStyle(color: AppColors.grey, fontSize: 12)),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<Map<String, dynamic>>(
@@ -163,12 +183,21 @@ class _BookingScreenState extends State<BookingScreen> {
                           dropdownColor: AppColors.black2,
                           style: const TextStyle(color: AppColors.white),
                           decoration: const InputDecoration(hintText: 'Select pickup stop'),
-                          items: (_selectedRoute?.stops ?? [])
-                              .map((s) => DropdownMenuItem(value: s, child: Text(s['name'])))
-                              .toList(),
+                          // Maps over stops of the selected route safely
+                          items: (_selectedRoute?.stops ?? []).map<DropdownMenuItem<Map<String, dynamic>>>((stop) {
+                            final Map<String, dynamic> stopMap = stop is Map<String, dynamic> 
+                                ? stop 
+                                : Map<String, dynamic>.from(stop as Map);
+                            return DropdownMenuItem<Map<String, dynamic>>(
+                              value: stopMap,
+                              child: Text(stopMap['name']?.toString() ?? ''),
+                            );
+                          }).toList(),
                           onChanged: _selectedRoute == null ? null : (value) => setState(() => _selectedStop = value),
                         ),
                         const SizedBox(height: 18),
+
+                        // --- Section: Date and Time Selectors ---
                         Row(
                           children: [
                             Expanded(
@@ -191,6 +220,8 @@ class _BookingScreenState extends State<BookingScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
+
+                        // --- Section: Passengers Counter ---
                         const Text('Passengers', style: TextStyle(color: AppColors.grey, fontSize: 12)),
                         const SizedBox(height: 6),
                         Container(
@@ -216,6 +247,8 @@ class _BookingScreenState extends State<BookingScreen> {
                           ),
                         ),
                         const SizedBox(height: 18),
+
+                        // --- Section: Local / International Toggle ---
                         const Text('Passenger Type', style: TextStyle(color: AppColors.grey, fontSize: 12)),
                         const SizedBox(height: 6),
                         Row(
@@ -226,6 +259,8 @@ class _BookingScreenState extends State<BookingScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
+
+                        // --- Section: Total Price Card ---
                         Container(
                           padding: const EdgeInsets.all(16),
                           width: double.infinity,
@@ -244,6 +279,8 @@ class _BookingScreenState extends State<BookingScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
+
+                        // --- Section: Continue Button ---
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -259,6 +296,7 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 }
 
+/// Helper tile widget for Date and Time input fields
 class _SelectorTile extends StatelessWidget {
   final String label;
   final String value;
@@ -287,6 +325,7 @@ class _SelectorTile extends StatelessWidget {
   }
 }
 
+/// Helper widget for rendering Local/International toggle buttons
 class _TypeToggle extends StatelessWidget {
   final String label;
   final bool isSelected;

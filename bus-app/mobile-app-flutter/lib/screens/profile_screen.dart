@@ -7,6 +7,7 @@ import 'payment_methods_screen.dart';
 import 'notification_settings_screen.dart';
 import 'help_support_screen.dart';
 import 'terms_conditions_screen.dart';
+import '../providers/theme_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -98,6 +99,26 @@ class ProfileScreen extends StatelessWidget {
               label: 'Terms and Conditions',
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsScreen())),
             ),
+            Consumer<ThemeProvider>(
+              builder: (context, theme, _) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.brightness_6_outlined, color: AppColors.yellow),
+                      const SizedBox(width: 16),
+                      const Expanded(child: Text('Light Mode', style: TextStyle(color: AppColors.white, fontSize: 14))),
+                      Switch(
+                        value: theme.isLightMode,
+                        onChanged: (_) => theme.toggleTheme(),
+                        activeThumbColor: AppColors.yellow,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
             const SizedBox(height: 12),
             _ProfileMenuTile(
               icon: Icons.logout,

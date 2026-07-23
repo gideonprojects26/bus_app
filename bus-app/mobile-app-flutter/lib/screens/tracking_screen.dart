@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../utils/app_colors.dart';
-import '../utils/mock_tour_data.dart';
-import '../utils/mock_bus_eta_data.dart';
-import '../models/tour_route_model.dart';
+import '../utils/stop_coordinates.dart';
 import '../widgets/app_back_button.dart';
 import '../widgets/app_card_shadow.dart';
 
@@ -15,98 +13,178 @@ class TrackingScreen extends StatefulWidget {
 }
 
 class _TrackingScreenState extends State<TrackingScreen> {
-  String? _selectedRouteId;
+  // Currently selected route ID (defaults to City Highlights)
+  String _selectedRouteId = 'city_highlights';
+  GoogleMapController? _mapController;
 
+  // Camera initial view over central Kampala
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(0.3163, 32.5822),
-    zoom: 12,
+    target: LatLng(0.3182, 32.5898),
+    zoom: 12.5,
   );
 
-  Set<Marker> _buildMarkers(TourRouteModel tour) {
-    return tour.stops.map((stop) {
+  /// Helper to get the currently selected tour route model
+  TourRouteData get _selectedRoute {
+    return StopTrackingData.routes.firstWhere(
+      (r) => r.id == _selectedRouteId,
+      orElse: () => StopTrackingData.routes.first,
+    );
+  }
+
+  /// Builds map markers for all stops in the active route
+  Set<Marker> _buildMarkers(TourRouteData route) {
+    return route.stops.map((stop) {
       return Marker(
-        markerId: MarkerId(stop.name),
-        position: LatLng(stop.latitude, stop.longitude),
-        infoWindow: InfoWindow(title: stop.name),
+        markerId: MarkerId(stop.id),
+        position: stop.location,
+        infoWindow: InfoWindow(
+          title: stop.name,
+          snippet: stop.subtitle,
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+            route.id == 'religious_tour'
+              ? BitmapDescriptor.hueYellow
+              : BitmapDescriptor.hueRed,
+        ),
       );
     }).toSet();
   }
 
-  Set<Polyline> _buildPolyline(TourRouteModel tour) {
-    final color = tour.id == 'religious_tour' ? AppColors.yellow : AppColors.red;
+  /// Builds sequential route polylines connecting stops
+  Set<Polyline> _buildPolyline(TourRouteData route) {
     return {
       Polyline(
-        polylineId: PolylineId(tour.id),
-        points: tour.stops.map((s) => LatLng(s.latitude, s.longitude)).toList(),
-        color: color,
+        polylineId: PolylineId(route.id),
+        points: route.stops.map((s) => s.location).toList(),
+        color: route.id == 'religious_tour' ? AppColors.yellow : AppColors.amber,
         width: 4,
       ),
     };
   }
 
+  /// Recenters the map view to fit all markers in the active route
+  void _recenterMap(TourRouteData route) {
+    if (_mapController == null || route.stops.isEmpty) return;
+
+    double minLat = route.stops.first.latitude;
+    double maxLat = route.stops.first.latitude;
+    double minLng = route.stops.first.longitude;
+    double maxLng = route.stops.first.longitude;
+
+    for (final stop in route.stops) {
+      if (stop.latitude < minLat) minLat = stop.latitude;
+      if (stop.latitude > maxLat) maxLat = stop.latitude;
+      if (stop.longitude < minLng) minLng = stop.longitude;
+      if (stop.longitude > maxLng) maxLng = stop.longitude;
+    }
+
+    // Handles single stop or identical bounds safely without throwing bounds assertions
+    if (minLat == maxLat && minLng == maxLng) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(minLat, minLng), 15.0),
+      );
+    } else {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(minLat, minLng),
+            northeast: LatLng(maxLat, maxLng),
+          ),
+          50.0, // padding
+        ),
+      );
+    }
+  }
+
+  /// Zooms camera directly to a selected stop when tapped in the timeline list
+  void _focusStop(LatLng location) {
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(location, 15.5),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selectedTour = _selectedRouteId == null
-        ? null
-        : MockTourData.tours.firstWhere((t) => t.id == _selectedRouteId);
-
-    final screenHeight = MediaQuery.of(context).size.height;
-    // Map occupies two-thirds of the available screen height, as requested.
-    final mapHeight = screenHeight * (1 / 2);
-
-    final visibleBuses = _selectedRouteId == null
-        ? MockBusEtaData.buses
-        : MockBusEtaData.buses.where((b) => b.routeId == _selectedRouteId).toList();
+    final route = _selectedRoute;
+    final mapHeight = MediaQuery.of(context).size.height * 0.48;
 
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
-        title: const Text('Track Bus'),
+        title: const Text('Track Tour Route'),
       ),
       body: Column(
         children: [
-          // MAP SECTION — enclosed in a rounded, bordered container
-          // occupying 2/3 of the screen height rather than the full screen.
+          // MAP CONTAINER
           SizedBox(
             height: mapHeight,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.amber.withValues(alpha: 0.35), width: 1.5),
+                    border: Border.all(
+                      color: AppColors.amber.withValues(alpha: 0.35),
+                      width: 1.5,
+                    ),
                   ),
                   child: Stack(
                     children: [
                       GoogleMap(
                         initialCameraPosition: _initialPosition,
-                        markers: selectedTour != null ? _buildMarkers(selectedTour) : {},
-                        polylines: selectedTour != null ? _buildPolyline(selectedTour) : {},
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                          // Recenter camera on the active route as soon as map finishes loading
+                          _recenterMap(route);
+                        },
+                        markers: _buildMarkers(route),
+                        polylines: _buildPolyline(route),
                       ),
+
+                      // ROUTE TOGGLE CHIPS AT TOP RIGHT
                       Positioned(
-                        top: 14,
-                        right: 14,
+                        top: 12,
+                        right: 12,
                         child: Column(
-                          children: [
-                            _RouteToggleChip(
-                              label: 'All',
-                              isSelected: _selectedRouteId == null,
-                              onTap: () => setState(() => _selectedRouteId = null),
-                            ),
-                            const SizedBox(height: 8),
-                            ...MockTourData.tours.map((tour) {
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: _RouteToggleChip(
-                                  label: tour.name,
-                                  isSelected: _selectedRouteId == tour.id,
-                                  onTap: () => setState(() => _selectedRouteId = tour.id),
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: StopTrackingData.routes.map((r) {
+                            final isSelected = r.id == _selectedRouteId;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() => _selectedRouteId = r.id);
+                                  _recenterMap(r);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.yellow
+                                        : AppColors.black.withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: AppColors.yellow),
+                                  ),
+                                  child: Text(
+                                    r.name,
+                                    style: TextStyle(
+                                      color: isSelected ? AppColors.black : AppColors.yellow,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ),
-                              );
-                            }),
-                          ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ],
@@ -116,12 +194,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ),
           ),
 
-          // ETA PANEL — bottom third of the screen, listing each bus's
-          // estimated time of arrival at its next stop.
+          // STOPS TIMELINE PANEL
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               decoration: const BoxDecoration(
                 color: AppColors.black3,
                 borderRadius: BorderRadius.only(
@@ -132,128 +209,122 @@ class _TrackingScreenState extends State<TrackingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Live Bus Arrival Times',
-                    style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                  Text(
+                    route.name,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Estimated time for each bus to reach its next stop',
-                    style: TextStyle(color: AppColors.grey, fontSize: 12),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${route.stops.length} Stops · ${route.description}',
+                    style: const TextStyle(color: AppColors.grey, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 14),
+
+                  // STOP LIST
                   Expanded(
                     child: ListView.builder(
-                      itemCount: visibleBuses.length,
+                      itemCount: route.stops.length,
                       itemBuilder: (context, index) {
-                        final bus = visibleBuses[index];
-                        return _BusEtaTile(bus: bus);
+                        final stop = route.stops[index];
+                        final isLast = index == route.stops.length - 1;
+
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Step Number & Dynamically Scaling Timeline Line
+                              Column(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: AppColors.yellow,
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: AppColors.black,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (!isLast)
+                                    Expanded(
+                                      child: Container(
+                                        width: 2,
+                                        color: AppColors.yellow.withValues(alpha: 0.35),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Interactive Stop Details Card
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: GestureDetector(
+                                    onTap: () => _focusStop(stop.location),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.black2,
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: AppCardShadow.soft,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  stop.name,
+                                                  style: const TextStyle(
+                                                    color: AppColors.white,
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  stop.subtitle,
+                                                  style: const TextStyle(
+                                                    color: AppColors.grey,
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Text(
+                                            '${stop.latitude.toStringAsFixed(3)}, ${stop.longitude.toStringAsFixed(3)}',
+                                            style: const TextStyle(
+                                              color: AppColors.amber,
+                                              fontSize: 10,
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
                       },
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RouteToggleChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _RouteToggleChip({required this.label, required this.isSelected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.yellow : AppColors.black.withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.yellow),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColors.black : AppColors.yellow,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BusEtaTile extends StatelessWidget {
-  final dynamic bus;
-
-  const _BusEtaTile({required this.bus});
-
-  @override
-  Widget build(BuildContext context) {
-    final isArrivingSoon = bus.etaMinutes <= 10;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.black2,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: AppCardShadow.soft,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: (isArrivingSoon ? AppColors.yellow : AppColors.grey).withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.directions_bus_rounded,
-              color: isArrivingSoon ? AppColors.yellow : AppColors.grey,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  bus.plateNumber,
-                  style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${bus.routeName} · Next: ${bus.nextStop}',
-                  style: const TextStyle(color: AppColors.grey, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${bus.etaMinutes} min',
-                style: TextStyle(
-                  color: isArrivingSoon ? AppColors.yellow : AppColors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const Text('ETA', style: TextStyle(color: AppColors.grey, fontSize: 10)),
-            ],
           ),
         ],
       ),
