@@ -3,6 +3,8 @@ const { v4: uuidv4 } = require('uuid');
 const { decideProvider } = require('../services/providerRouter');
 const pesapalService = require('../services/pesapalService');
 const momoService = require('../services/momoService');
+// Optional: require airtelService if you have an airtelService module
+// const airtelService = require('../services/airtelService');
 
 const initiatePayment = async (req, res) => {
   try {
@@ -19,8 +21,6 @@ const initiatePayment = async (req, res) => {
       return res.status(400).json({ message: 'Phone number is required for Mobile Money.' });
     }
 
-    // SECURITY: fare is computed here, from the Route record itself —
-    // never taken from req.body.
     const route = await Route.findByPk(routeId);
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' });
@@ -31,9 +31,28 @@ const initiatePayment = async (req, res) => {
     const ratePerPerson = isLocal ? Number(route.fare) : Number(route.internationalFare);
     const totalFare = ratePerPerson * passengerCount;
 
-    const routing = decideProvider({ paymentMethodChosen, phoneNumber, currency });
+    let routing = decideProvider({ paymentMethodChosen, phoneNumber, currency });
     const txRef = `booking-${uuidv4()}`;
 
+    // -------------------------------------------------------------
+    // 1. CONFIGURATION CHECKS: Check credentials before calling APIs
+    // -------------------------------------------------------------
+    const isMomoConfigured = Boolean(process.env.MOMO_SUBSCRIPTION_KEY);
+    const isAirtelConfigured = Boolean(
+      process.env.AIRTEL_CLIENT_ID && process.env.AIRTEL_CLIENT_SECRET
+    );
+
+    if (routing.provider === 'mtn_direct' && !isMomoConfigured) {
+      console.warn('⚠️ MTN MoMo credentials missing in environment. Falling back to Pesapal.');
+      routing.provider = 'pesapal';
+    }
+
+    if (routing.provider === 'airtel_direct' && !isAirtelConfigured) {
+      console.warn('⚠️ Airtel Money credentials missing in environment. Falling back to Pesapal.');
+      routing.provider = 'pesapal';
+    }
+
+    // Create the booking record with the current provider
     const booking = await Booking.create({
       routeId,
       routeName: route.name,
@@ -53,30 +72,51 @@ const initiatePayment = async (req, res) => {
       userId: req.user.id,
     });
 
+    // -------------------------------------------------------------
+    // 2. RUNTIME EXECUTION & FALLBACKS
+    // -------------------------------------------------------------
+
+    // --- MTN DIRECT EXECUTION ---
     if (routing.provider === 'mtn_direct') {
-      await momoService.requestToPay({
-        txRef,
-        amount: totalFare,
-        phoneNumber: routing.normalizedPhone,
-        payerMessage: `Payment for ${route.name}`,
-      });
+      try {
+        await momoService.requestToPay({
+          txRef,
+          amount: totalFare,
+          phoneNumber: routing.normalizedPhone,
+          payerMessage: `Payment for ${route.name}`,
+        });
 
-      return res.status(201).json({
-        bookingId: booking.id,
-        txRef,
-        provider: 'mtn_direct',
-        flow: 'ussd_push',
-        totalFare,
-        currency,
-      });
+        return res.status(201).json({
+          bookingId: booking.id,
+          txRef,
+          provider: 'mtn_direct',
+          flow: 'ussd_push',
+          totalFare,
+          currency,
+        });
+      } catch (momoError) {
+        console.error('⚠️ MTN Direct API failed. Falling back to Pesapal:', momoError.message);
+        await booking.update({ provider: 'pesapal' });
+        routing.provider = 'pesapal';
+      }
     }
 
+    // --- AIRTEL DIRECT EXECUTION ---
     if (routing.provider === 'airtel_direct') {
-      return res.status(501).json({ message: 'Airtel Direct not yet implemented.' });
+      try {
+        // If airtelService is implemented, attempt pay request here:
+        // await airtelService.requestToPay({ ... });
+        
+        // If not fully set up yet, intentionally force fallback:
+        throw new Error('Airtel Direct integration pending production credentials.');
+      } catch (airtelError) {
+        console.error('⚠️ Airtel Direct failed or unconfigured. Falling back to Pesapal:', airtelError.message);
+        await booking.update({ provider: 'pesapal' });
+        routing.provider = 'pesapal';
+      }
     }
 
-    // Fallback email ensures PesaPal API payload requirement is satisfied
-    // even if the user or request does not supply an email.
+    // --- PESAPAL EXECUTION (Primary or Fallback) ---
     const customerEmail = email || req.user?.email || 'customer@busapp.com';
 
     const pesapalResponse = await pesapalService.submitOrder({
