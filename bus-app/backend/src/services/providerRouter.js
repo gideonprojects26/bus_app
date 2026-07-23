@@ -1,37 +1,49 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+/**
+ * Determines which payment provider to route the transaction to
+ * based on the user's chosen payment method, phone number prefix, and currency.
+ */
+function decideProvider({ paymentMethodChosen, phoneNumber, currency }) {
+  let normalizedPhone = phoneNumber ? phoneNumber.replace(/\s+/g, '') : '';
 
-const Booking = sequelize.define('Booking', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  routeName: { type: DataTypes.STRING, allowNull: false },
-  pickupStop: { type: DataTypes.STRING, allowNull: false },
-  bookingDate: { type: DataTypes.DATEONLY, allowNull: false },
-  bookingTime: { type: DataTypes.STRING, allowNull: false },
-  seatCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
-  isLocal: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-  totalFare: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-  currency: { type: DataTypes.STRING, allowNull: false, defaultValue: 'UGX' },
-  status: {
-    type: DataTypes.ENUM('pending', 'confirmed', 'completed', 'cancelled'),
-    defaultValue: 'pending',
-  },
-  paymentMethodChosen: { type: DataTypes.STRING, allowNull: true }, // 'mobile_money' or 'card' — what the USER picked
-  provider: { type: DataTypes.STRING, allowNull: true }, // 'mtn_direct', 'airtel_direct', 'pesapal' — what the ROUTER decided
-  phoneNumber: { type: DataTypes.STRING, allowNull: true }, // normalized, for mobile money bookings only
-  paymentStatus: {
-    type: DataTypes.ENUM('pending', 'paid', 'failed'),
-    defaultValue: 'pending',
-  },
-  txRef: { type: DataTypes.STRING, allowNull: true, unique: true },
-  providerTransactionId: { type: DataTypes.STRING, allowNull: true },
-  userId: { type: DataTypes.UUID, allowNull: true },
-}, {
-  tableName: 'bookings',
-  timestamps: true,
-});
+  // Normalize local Ugandan phone numbers (e.g., 077... -> 25677...)
+  if (normalizedPhone.startsWith('0')) {
+    normalizedPhone = '256' + normalizedPhone.slice(1);
+  } else if (normalizedPhone.startsWith('+')) {
+    normalizedPhone = normalizedPhone.slice(1);
+  }
 
-module.exports = Booking;
+  // Card or explicit Pesapal payments (or non-UGX currency) route to Pesapal
+  if (
+    paymentMethodChosen === 'card' ||
+    paymentMethodChosen === 'pesapal' ||
+    currency === 'USD'
+  ) {
+    return { provider: 'pesapal', normalizedPhone };
+  }
+
+  // Mobile Money direct routing based on Ugandan carrier prefixes
+  if (paymentMethodChosen === 'mobile_money') {
+    // MTN prefixes: 077, 078, 076
+    if (
+      normalizedPhone.startsWith('25677') ||
+      normalizedPhone.startsWith('25678') ||
+      normalizedPhone.startsWith('25676')
+    ) {
+      return { provider: 'mtn_direct', normalizedPhone };
+    }
+
+    // Airtel prefixes: 070, 075, 074
+    if (
+      normalizedPhone.startsWith('25670') ||
+      normalizedPhone.startsWith('25675') ||
+      normalizedPhone.startsWith('25674')
+    ) {
+      return { provider: 'airtel_direct', normalizedPhone };
+    }
+  }
+
+  // Fallback to Pesapal for any other setup
+  return { provider: 'pesapal', normalizedPhone };
+}
+
+module.exports = { decideProvider };
