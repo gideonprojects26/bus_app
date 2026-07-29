@@ -10,6 +10,7 @@ const driverRoutes = require('./routes/driverRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const rentalRoutes = require('./routes/rentalRoutes');
 const paymentRoutes = require('./routes/paymentRoutes'); // 👈 1. Added payment routes
+const trackingWebhookRoutes = require('./routes/trackingWebhookRoutes');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/payments', paymentRoutes); // 👈 2. Mounted payment endpoint at /api/payments
+app.use('/api/tracking', trackingWebhookRoutes); // 👈 3. Added tracking webhook route
 
 const PORT = process.env.PORT || 3000;
 

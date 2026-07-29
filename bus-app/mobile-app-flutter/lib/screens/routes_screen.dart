@@ -1,40 +1,68 @@
+// lib/screens/routes_screen.dart
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
-import '../models/backend_route_model.dart';
-import '../services/route_service.dart';
-import '../widgets/app_back_button.dart';
-import '../widgets/app_card_shadow.dart';
-import 'booking_screen.dart';
+import 'package:http/http.dart' as http;
+import '../models/route_detail_model.dart';
 import '../widgets/stop_image_slideshow.dart';
+import '../screens/route_detail_screen.dart';
 
 class RoutesScreen extends StatefulWidget {
-  const RoutesScreen({super.key});
+  // Made optional so calls like RoutesScreen() in home_screen.dart and activity_screen.dart work without errors
+  final List<RouteDetail>? routes;
+
+  const RoutesScreen({
+    super.key,
+    this.routes,
+  });
 
   @override
   State<RoutesScreen> createState() => _RoutesScreenState();
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
-  List<BackendRoute> _routes = [];
-  bool _isLoading = true;
+  List<RouteDetail> _routes = [];
+  bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadRoutes();
+    // If routes were passed from parent, use them. Otherwise, fetch from backend.
+    if (widget.routes != null) {
+      _routes = widget.routes!;
+    } else {
+      _fetchRoutesFromBackend();
+    }
   }
 
-  Future<void> _loadRoutes() async {
+  Future<void> _fetchRoutesFromBackend() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
-      final routes = await RouteService.fetchRoutes();
-      setState(() {
-        _routes = routes;
-        _isLoading = false;
-      });
+      // Adjust backend URL if using dynamic IP or Render URL
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:5000/api/routes'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _routes = data.map((json) => RouteDetail.fromJson(json)).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load routes from server.';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load available tours. Check your connection.';
+        _errorMessage = 'Could not connect to network.';
         _isLoading = false;
       });
     }
@@ -43,178 +71,129 @@ class _RoutesScreenState extends State<RoutesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        leading: const AppBackButton(),
-        title: const Text('Available Tours'),
+        title: const Text(
+          'Available Routes',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF1E1E1E),
+        elevation: 0,
       ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.yellow))
-            : _errorMessage != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_errorMessage!, style: const TextStyle(color: AppColors.grey), textAlign: TextAlign.center),
-                          const SizedBox(height: 16),
-                          ElevatedButton(onPressed: _loadRoutes, child: const Text('Retry')),
-                        ],
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.amber),
+            )
+          : _routes.isEmpty
+              ? Center(
+                  child: Text(
+                    _errorMessage ?? 'No routes available.',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _routes.length,
+                  itemBuilder: (context, index) {
+                    final routeDetail = _routes[index];
+
+                    return Card(
+                      color: const Color(0xFF1E1E1E),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: _routes.length,
-                    itemBuilder: (context, index) {
-                      final tour = _routes[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _TourCard(tour: tour),
-                            const SizedBox(height: 10),
-                            StopImageSlideshow(images: tour.images),
+                            // Route Title and Fare Badge
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    routeDetail.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    'UGX ${routeDetail.fare.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Route Description
+                            Text(
+                              routeDetail.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Auto-sliding Stop Carousel Widget
+                            if (routeDetail.stops.isNotEmpty) ...[
+                              StopImageSlideshow(
+                                route: routeDetail,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Details Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => RouteDetailScreen(
+                                        route: routeDetail,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.amber),
+                                  foregroundColor: Colors.amber,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text('View Full Route Details'),
+                              ),
+                            ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-      ),
-    );
-  }
-}
-
-class _TourCard extends StatelessWidget {
-  final BackendRoute tour;
-
-  const _TourCard({required this.tour});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.zero,
-      decoration: BoxDecoration(
-        boxShadow: AppCardShadow.soft,
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          title: Text(
-            tour.name,
-            style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                tour.description,
-                style: const TextStyle(color: AppColors.grey, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.confirmation_number_outlined, size: 14, color: AppColors.yellow),
-                  const SizedBox(width: 6),
-                  Text(
-                    'UGX ${tour.fare.toStringAsFixed(0)} / \$${tour.internationalFare.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: AppColors.yellow,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          iconColor: AppColors.yellow,
-          collapsedIconColor: AppColors.yellow,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Divider(color: Colors.white12),
-                  const SizedBox(height: 8),
-                  const Text('Stops', style: TextStyle(color: AppColors.yellow, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  ...tour.stops.asMap().entries.map((entry) {
-                    final stopName = entry.value['name'];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 10,
-                            backgroundColor: AppColors.yellow,
-                            child: Text(
-                              '${entry.key + 1}',
-                              style: const TextStyle(color: AppColors.black, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              stopName,
-                              style: const TextStyle(color: AppColors.white, fontSize: 13),
-                            ),
-                          ),
-                        ],
                       ),
                     );
-                  }),
-                  const SizedBox(height: 14),
-                  const Text('Daily Departures', style: TextStyle(color: AppColors.yellow, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: tour.schedule.map((time) {
-                      final timeStr = time['departureTime'] ?? '';
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.black2,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Text(
-                          timeStr,
-                          style: const TextStyle(color: AppColors.white, fontSize: 12),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BookingScreen(preselectedRouteId: tour.id),
-                          ),
-                        );
-                      },
-                      child: const Text('Book This Tour'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+                  },
+                ),
     );
   }
 }

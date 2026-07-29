@@ -17,6 +17,8 @@ const Bus = sequelize.define('Bus', {
   },
   routeId: { type: DataTypes.UUID, allowNull: true },
   driverId: { type: DataTypes.UUID, allowNull: true },
+  trackerDeviceId: { type: DataTypes.STRING, allowNull: true, unique: true }, // TrackNav's device/IMEI identifier for this bus
+  lastLocationUpdate: { type: DataTypes.DATE, allowNull: true },
 }, {
   tableName: 'buses',
   timestamps: true,
