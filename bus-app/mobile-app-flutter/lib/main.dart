@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadSavedPreference()),
       ],
       child: MaterialApp(
-        title: 'Bus App',
+        title: 'HopOn HopOff',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         home: const AuthGate(),
