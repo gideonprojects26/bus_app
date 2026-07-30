@@ -3,8 +3,7 @@ const sequelize = require('../config/database');
 
 const Booking = sequelize.define('Booking', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.STRING,
     primaryKey: true,
   },
   // routeId is the real relational link to the Route table. routeName/

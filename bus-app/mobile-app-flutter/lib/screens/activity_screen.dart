@@ -7,8 +7,26 @@ import '../widgets/app_pill_button.dart';
 import '../widgets/app_icon_avatar.dart';
 import 'routes_screen.dart';
 
-class ActivityScreen extends StatelessWidget {
+// Converted to StatefulWidget so we can use lifecycle hooks (initState)
+class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
+
+  @override
+  State<ActivityScreen> createState() => _ActivityScreenState();
+}
+
+class _ActivityScreenState extends State<ActivityScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    // WidgetsBinding guarantees the widget is fully built before we make the provider call.
+    // This prevents "Cannot update Provider during build" exceptions in Flutter.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Calls our backend API through BookingProvider to retrieve saved PostgreSQL records
+      Provider.of<BookingProvider>(context, listen: false).fetchUserBookings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +52,37 @@ class ActivityScreen extends StatelessWidget {
             ],
           ),
         ),
+        // Consumer listens to state changes inside BookingProvider
         body: Consumer<BookingProvider>(
           builder: (context, bookingProvider, _) {
+            // Show a centered loading spinner while the API call is in-flight
+            if (bookingProvider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.yellow),
+              );
+            }
+
+            // Show an error banner with a Retry button if network request failed
+            if (bookingProvider.errorMessage != null && bookingProvider.allBookings.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      bookingProvider.errorMessage!,
+                      style: const TextStyle(color: AppColors.red, fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => bookingProvider.fetchUserBookings(),
+                      child: const Text('Retry Connection'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Render tab views once data is successfully fetched
             return TabBarView(
               children: [
                 _BookingList(bookings: bookingProvider.allBookings),
@@ -59,6 +106,7 @@ class _BookingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Render Empty State if list contains no items
     if (bookings.isEmpty) {
       return Center(
         child: Padding(
@@ -66,8 +114,6 @@ class _BookingList extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Placeholder illustration block, matching the grey
-              // rounded-line card shown in the reference empty state.
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -105,6 +151,7 @@ class _BookingList extends StatelessWidget {
       );
     }
 
+    // Render populated list of bookings
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: bookings.length,
@@ -118,7 +165,7 @@ class _BookingList extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF1A1A1A),
             borderRadius: BorderRadius.circular(14),
-           border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
+            border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +201,7 @@ class _BookingList extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (showCancel && booking.status == 'upcoming') ...[
+                    if (showCancel && (booking.status == 'upcoming' || booking.status == 'confirmed')) ...[
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerRight,

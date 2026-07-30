@@ -1,4 +1,4 @@
-﻿name: bus_app
+name: bus_app
 description: A Flutter bus booking application
 publish_to: 'none'
 version: 1.0.0+1
@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.2
+  http: ^1.6.0
   provider: ^6.1.2
   shared_preferences: ^2.3.2
   google_maps_flutter: ^2.9.0
