@@ -253,9 +253,79 @@ const pesapalCallback = async (req, res) => {
   }
 };
 
+// 1. Fetch all bookings across the app
+const getAllBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.findAll({
+      order: [['createdAt', 'DESC']],
+    });
+    res.json(bookings);
+  } catch (error) {
+    console.error('Error fetching all bookings:', error.message);
+    res.status(500).json({ message: 'Server error fetching bookings.' });
+  }
+};
+
+// 2. Fetch bookings for the logged-in mobile user
+const getMyBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.findAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']],
+    });
+    res.json(bookings);
+  } catch (error) {
+    console.error('Error fetching user bookings:', error.message);
+    res.status(500).json({ message: 'Server error fetching your bookings.' });
+  }
+};
+
+// 3. Update a booking's status
+const updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, paymentStatus } = req.body;
+
+    const booking = await Booking.findByPk(id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+
+    if (status) booking.status = status;
+    if (paymentStatus) booking.paymentStatus = paymentStatus;
+    await booking.save();
+
+    res.json({ message: 'Booking updated successfully.', booking });
+  } catch (error) {
+    console.error('Error updating booking:', error.message);
+    res.status(500).json({ message: 'Server error updating booking.' });
+  }
+};
+
+// 4. Cancel a booking
+const cancelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findOne({ where: { id, userId: req.user.id } });
+
+    if (!booking) return res.status(404).json({ message: 'Booking not found.' });
+
+    booking.status = 'cancelled';
+    await booking.save();
+
+    res.json({ message: 'Booking cancelled successfully.', booking });
+  } catch (error) {
+    console.error('Error cancelling booking:', error.message);
+    res.status(500).json({ message: 'Server error cancelling booking.' });
+  }
+};
+
 module.exports = {
   initiatePayment,
+  createBooking: initiatePayment, // Links createBooking to initiatePayment
   getPaymentStatus,
   pesapalWebhook,
   pesapalCallback,
+  getAllBookings,
+  getMyBookings,
+  updateBookingStatus,
+  cancelBooking,
 };
