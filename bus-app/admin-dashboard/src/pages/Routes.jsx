@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
 import api from '../services/api';
+import { uploadToCloudinary } from '../services/cloudinary';
+
+const emptyStop = { id: '', name: '', description: '', images: [], latitude: '', longitude: '' };
+const emptyBanner = { path: '', caption: '' };
 
 const emptyForm = {
   name: '',
@@ -10,7 +14,8 @@ const emptyForm = {
   endPoint: '',
   fare: '',
   internationalFare: '',
-  stops: [{ name: '', latitude: '', longitude: '' }],
+  images: [emptyBanner],
+  stops: [{ ...emptyStop, id: crypto.randomUUID() }],
   schedule: [{ day: '', departureTime: '' }],
 };
 
@@ -20,18 +25,17 @@ export default function RoutesPage() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
+  const [uploadingKey, setUploadingKey] = useState(null);
 
   const fetchRoutes = async () => {
     const res = await api.get('/routes');
     setRoutes(res.data);
   };
 
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
+  useEffect(() => { fetchRoutes(); }, []);
 
   const openCreate = () => {
-    setForm(emptyForm);
+    setForm({ ...emptyForm, stops: [{ ...emptyStop, id: crypto.randomUUID() }] });
     setEditingId(null);
     setShowModal(true);
   };
@@ -44,7 +48,8 @@ export default function RoutesPage() {
       endPoint: route.endPoint,
       fare: route.fare,
       internationalFare: route.internationalFare || '',
-      stops: route.stops?.length ? route.stops : emptyForm.stops,
+      images: route.images?.length ? route.images : [emptyBanner],
+      stops: route.stops?.length ? route.stops.map(s => ({ ...emptyStop, ...s, id: s.id || crypto.randomUUID() })) : [{ ...emptyStop, id: crypto.randomUUID() }],
       schedule: route.schedule?.length ? route.schedule : emptyForm.schedule,
     });
     setEditingId(route.id);
@@ -57,6 +62,7 @@ export default function RoutesPage() {
     fetchRoutes();
   };
 
+  // ---- Stops ----
   const handleStopChange = (index, field, value) => {
     const updated = [...form.stops];
     updated[index][field] = value;
@@ -64,13 +70,57 @@ export default function RoutesPage() {
   };
 
   const addStop = () => {
-    setForm({ ...form, stops: [...form.stops, { name: '', latitude: '', longitude: '' }] });
+    setForm({ ...form, stops: [...form.stops, { ...emptyStop, id: crypto.randomUUID() }] });
   };
 
   const removeStop = (index) => {
     setForm({ ...form, stops: form.stops.filter((_, i) => i !== index) });
   };
 
+  const addStopImage = async (stopIndex, file) => {
+    setUploadingKey(`stop-${stopIndex}`);
+    try {
+      const url = await uploadToCloudinary(file);
+      const updated = [...form.stops];
+      updated[stopIndex].images = [...(updated[stopIndex].images || []), url];
+      setForm({ ...form, stops: updated });
+    } catch (err) {
+      alert('Image upload failed: ' + err.message);
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
+  const removeStopImage = (stopIndex, imageIndex) => {
+    const updated = [...form.stops];
+    updated[stopIndex].images = updated[stopIndex].images.filter((_, i) => i !== imageIndex);
+    setForm({ ...form, stops: updated });
+  };
+
+  // ---- Route banner images ----
+  const handleBannerChange = (index, field, value) => {
+    const updated = [...form.images];
+    updated[index][field] = value;
+    setForm({ ...form, images: updated });
+  };
+
+  const addBannerUpload = async (file) => {
+    setUploadingKey('banner');
+    try {
+      const url = await uploadToCloudinary(file);
+      setForm({ ...form, images: [...form.images, { path: url, caption: '' }] });
+    } catch (err) {
+      alert('Image upload failed: ' + err.message);
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
+  const removeBanner = (index) => {
+    setForm({ ...form, images: form.images.filter((_, i) => i !== index) });
+  };
+
+  // ---- Schedule ----
   const handleScheduleChange = (index, field, value) => {
     const updated = [...form.schedule];
     updated[index][field] = value;
@@ -93,6 +143,7 @@ export default function RoutesPage() {
         ...form,
         fare: parseFloat(form.fare),
         internationalFare: parseFloat(form.internationalFare) || 30,
+        images: form.images.filter(b => b.path),
       };
       if (editingId) {
         await api.put(`/routes/${editingId}`, payload);
@@ -113,7 +164,7 @@ export default function RoutesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <div>
           <h1 style={{ marginBottom: 6 }}>Tour Routes</h1>
-          <p style={{ color: 'var(--color-grey)' }}>Manage Religious Tour, City Highlights Tour, and their stops</p>
+          <p style={{ color: 'var(--color-grey)' }}>Manage routes, stop galleries, and banner images</p>
         </div>
         <button style={buttonStyle} onClick={openCreate}>+ New Route</button>
       </div>
@@ -125,17 +176,13 @@ export default function RoutesPage() {
               <div>
                 <h3 style={{ marginBottom: 4 }}>{route.name}</h3>
                 <p style={{ color: 'var(--color-grey)', fontSize: 13, marginBottom: 8 }}>{route.description}</p>
-                <p style={{ fontSize: 13 }}>{route.startPoint} → {route.endPoint}</p>
+                <p style={{ fontSize: 13 }}>{route.startPoint} \u2192 {route.endPoint}</p>
                 <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
-                  <p style={{ fontSize: 13, color: 'var(--color-yellow)', fontWeight: 600 }}>
-                    Local: UGX {route.fare}
-                  </p>
-                  <p style={{ fontSize: 13, color: 'var(--color-yellow)', fontWeight: 600 }}>
-                    International: USD {route.internationalFare || 30}
-                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--color-yellow)', fontWeight: 600 }}>Local: UGX {route.fare}</p>
+                  <p style={{ fontSize: 13, color: 'var(--color-yellow)', fontWeight: 600 }}>International: USD {route.internationalFare || 30}</p>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--color-grey)', marginTop: 8 }}>
-                  {route.stops?.length || 0} stops · {route.schedule?.length || 0} scheduled departures
+                  {route.stops?.length || 0} stops \u00b7 {route.images?.length || 0} banner photos
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 8, height: 'fit-content' }}>
@@ -151,9 +198,9 @@ export default function RoutesPage() {
       {showModal && (
         <Modal title={editingId ? 'Edit Route' : 'New Route'} onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <input style={inputStyle} placeholder="Route Name (e.g. Religious Tour)" value={form.name}
+            <input style={inputStyle} placeholder="Route Name" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <textarea style={{ ...inputStyle, minHeight: 60 }} placeholder="Description" value={form.description}
+            <textarea style={{ ...inputStyle, minHeight: 60 }} placeholder="Route Description" value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <input style={inputStyle} placeholder="Start Point" value={form.startPoint}
               onChange={(e) => setForm({ ...form, startPoint: e.target.value })} required />
@@ -164,16 +211,53 @@ export default function RoutesPage() {
             <input style={inputStyle} placeholder="International Fare (USD)" type="number" value={form.internationalFare}
               onChange={(e) => setForm({ ...form, internationalFare: e.target.value })} required />
 
+            <label style={sectionLabel}>Route Banner Images</label>
+            {form.images.map((banner, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {banner.path && <img src={banner.path} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6 }} />}
+                <input style={inputStyle} placeholder="Caption" value={banner.caption}
+                  onChange={(e) => handleBannerChange(i, 'caption', e.target.value)} />
+                <button type="button" style={removeBtn} onClick={() => removeBanner(i)}>\u00d7</button>
+              </div>
+            ))}
+            <label style={uploadBtnStyle}>
+              {uploadingKey === 'banner' ? 'Uploading...' : '+ Upload Banner Image'}
+              <input type="file" accept="image/*" hidden
+                onChange={(e) => e.target.files[0] && addBannerUpload(e.target.files[0])} />
+            </label>
+
             <label style={sectionLabel}>Stops</label>
             {form.stops.map((stop, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8 }}>
-                <input style={inputStyle} placeholder="Stop name" value={stop.name}
-                  onChange={(e) => handleStopChange(i, 'name', e.target.value)} />
-                <input style={{ ...inputStyle, width: 90 }} placeholder="Lat" value={stop.latitude}
-                  onChange={(e) => handleStopChange(i, 'latitude', e.target.value)} />
-                <input style={{ ...inputStyle, width: 90 }} placeholder="Lng" value={stop.longitude}
-                  onChange={(e) => handleStopChange(i, 'longitude', e.target.value)} />
-                <button type="button" style={removeBtn} onClick={() => removeStop(i)}>×</button>
+              <div key={stop.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Stop name" value={stop.name}
+                    onChange={(e) => handleStopChange(i, 'name', e.target.value)} />
+                  <button type="button" style={removeBtn} onClick={() => removeStop(i)}>\u00d7</button>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input style={{ ...inputStyle, width: 90 }} placeholder="Lat" value={stop.latitude}
+                    onChange={(e) => handleStopChange(i, 'latitude', e.target.value)} />
+                  <input style={{ ...inputStyle, width: 90 }} placeholder="Lng" value={stop.longitude}
+                    onChange={(e) => handleStopChange(i, 'longitude', e.target.value)} />
+                </div>
+                <textarea style={{ ...inputStyle, minHeight: 50 }} placeholder="Stop description"
+                  value={stop.description} onChange={(e) => handleStopChange(i, 'description', e.target.value)} />
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {(stop.images || []).map((img, imgI) => (
+                    <div key={imgI} style={{ position: 'relative' }}>
+                      <img src={img} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 6 }} />
+                      <button type="button" onClick={() => removeStopImage(i, imgI)}
+                        style={{ position: 'absolute', top: -6, right: -6, background: 'var(--color-red)', color: 'white', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer' }}>
+                        \u00d7
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <label style={{ ...uploadBtnStyle, fontSize: 11, padding: '6px 10px' }}>
+                  {uploadingKey === `stop-${i}` ? 'Uploading...' : '+ Add Stop Photo'}
+                  <input type="file" accept="image/*" hidden
+                    onChange={(e) => e.target.files[0] && addStopImage(i, e.target.files[0])} />
+                </label>
               </div>
             ))}
             <button type="button" style={addBtn} onClick={addStop}>+ Add Stop</button>
@@ -185,12 +269,12 @@ export default function RoutesPage() {
                   onChange={(e) => handleScheduleChange(i, 'day', e.target.value)} />
                 <input style={inputStyle} placeholder="Time (e.g. 08:00)" value={s.departureTime}
                   onChange={(e) => handleScheduleChange(i, 'departureTime', e.target.value)} />
-                <button type="button" style={removeBtn} onClick={() => removeSchedule(i)}>×</button>
+                <button type="button" style={removeBtn} onClick={() => removeSchedule(i)}>\u00d7</button>
               </div>
             ))}
             <button type="button" style={addBtn} onClick={addSchedule}>+ Add Schedule Slot</button>
 
-            <button style={buttonStyle} type="submit" disabled={loading}>
+            <button style={buttonStyle} type="submit" disabled={loading || uploadingKey}>
               {loading ? 'Saving...' : editingId ? 'Update Route' : 'Create Route'}
             </button>
           </form>
@@ -200,67 +284,12 @@ export default function RoutesPage() {
   );
 }
 
-const buttonStyle = {
-  background: 'var(--color-yellow)',
-  color: 'var(--color-black)',
-  border: 'none',
-  borderRadius: 10,
-  padding: '11px 20px',
-  fontWeight: 'bold',
-  fontSize: 14,
-};
-
-const cardStyle = {
-  background: 'var(--color-black-light)',
-  border: '1px solid var(--color-border)',
-  borderRadius: 14,
-  padding: 20,
-};
-
-const editBtn = {
-  background: 'transparent',
-  border: '1px solid var(--color-yellow)',
-  color: 'var(--color-yellow)',
-  borderRadius: 8,
-  padding: '7px 14px',
-  fontSize: 13,
-};
-
-const deleteBtn = {
-  background: 'transparent',
-  border: '1px solid var(--color-red)',
-  color: 'var(--color-red)',
-  borderRadius: 8,
-  padding: '7px 14px',
-  fontSize: 13,
-};
-
-const inputStyle = {
-  background: '#0d0d0d',
-  border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  padding: '10px 12px',
-  color: 'var(--color-white)',
-  fontSize: 13,
-  width: '100%',
-};
-
+const buttonStyle = { background: 'var(--color-yellow)', color: 'var(--color-black)', border: 'none', borderRadius: 10, padding: '11px 20px', fontWeight: 'bold', fontSize: 14 };
+const cardStyle = { background: 'var(--color-black-light)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 20 };
+const editBtn = { background: 'transparent', border: '1px solid var(--color-yellow)', color: 'var(--color-yellow)', borderRadius: 8, padding: '7px 14px', fontSize: 13 };
+const deleteBtn = { background: 'transparent', border: '1px solid var(--color-red)', color: 'var(--color-red)', borderRadius: 8, padding: '7px 14px', fontSize: 13 };
+const inputStyle = { background: '#0d0d0d', border: '1px solid var(--color-border)', borderRadius: 8, padding: '10px 12px', color: 'var(--color-white)', fontSize: 13, width: '100%' };
 const sectionLabel = { fontSize: 12, color: 'var(--color-yellow)', fontWeight: 600, marginTop: 6 };
-
-const addBtn = {
-  background: 'transparent',
-  border: '1px dashed var(--color-yellow)',
-  color: 'var(--color-yellow)',
-  borderRadius: 8,
-  padding: '8px',
-  fontSize: 12,
-};
-
-const removeBtn = {
-  background: 'var(--color-red)',
-  color: 'var(--color-white)',
-  border: 'none',
-  borderRadius: 8,
-  width: 32,
-  fontSize: 16,
-};
+const addBtn = { background: 'transparent', border: '1px dashed var(--color-yellow)', color: 'var(--color-yellow)', borderRadius: 8, padding: '8px', fontSize: 12 };
+const removeBtn = { background: 'var(--color-red)', color: 'var(--color-white)', border: 'none', borderRadius: 8, width: 32, fontSize: 16 };
+const uploadBtnStyle = { display: 'inline-block', background: 'transparent', border: '1px solid var(--color-yellow)', color: 'var(--color-yellow)', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer', textAlign: 'center' };

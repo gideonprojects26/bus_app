@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/route_detail_model.dart';
 import '../screens/route_detail_screen.dart';
 import '../utils/app_colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class StopImageSlideshow extends StatefulWidget {
   final RouteDetail route; // Accepts full RouteDetail object
@@ -84,18 +85,19 @@ class _StopImageSlideshowState extends State<StopImageSlideshow> {
                   children: [
                     // Network Image from Cloudinary
                     if (displayImage != null && displayImage.isNotEmpty)
-                      Image.network(
-                        displayImage,
+                      CachedNetworkImage(
+                        imageUrl: displayImage,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              color: AppColors.grey,
-                              size: 28,
-                            ),
-                          );
-                        },
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => const Center(
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: AppColors.grey,
+                            size: 28,
+                          ),
+                        ),
                       )
                     else
                       const Center(

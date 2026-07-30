@@ -49,19 +49,19 @@ class HomeScreen extends StatelessWidget {
                 childAspectRatio: 1.3,
                 children: [
                   QuickActionButton(
-                    imagePath: 'assets/images/book.png',
-                    label: 'Book Yourself a Tour',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const BookingScreen()),
-                    ),
-                  ),
-                  QuickActionButton(
                     imagePath: 'assets/images/tour.png',
                     label: 'Our Tour Routes',
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const RoutesScreen()),
+                    ),
+                  ),
+                  QuickActionButton(
+                    imagePath: 'assets/images/book.png',
+                    label: 'Book Yourself a Tour',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BookingScreen()),
                     ),
                   ),
                   QuickActionButton(

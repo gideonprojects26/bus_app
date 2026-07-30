@@ -1,10 +1,10 @@
 // lib/models/route_detail_model.dart
 
 class TourStop {
-  final int id;
+  final String id;
   final String name;
   final String description;
-  final List<String> images; // Supports multiple Cloudinary image URLs for the stop carousel
+  final List<String> images;
   final int orderIndex;
 
   TourStop({
@@ -16,8 +16,6 @@ class TourStop {
   });
 
   factory TourStop.fromJson(Map<String, dynamic> json) {
-    // Smart image parser: Handles an array of images (images: [...]), 
-    // or falls back safely to single image string keys ('image' or 'imageUrl')
     List<String> parsedImages = [];
 
     if (json['images'] is List) {
@@ -32,7 +30,7 @@ class TourStop {
     }
 
     return TourStop(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? 'Unnamed Stop',
       description: json['description'] ?? 'No description available.',
       images: parsedImages,
@@ -40,16 +38,16 @@ class TourStop {
     );
   }
 
-  // Helper getter: Returns the first image URL or null if no images exist
   String? get primaryImage => images.isNotEmpty ? images.first : null;
 }
 
 class RouteDetail {
-  final int id;
+  final String id;
   final String name;
   final String description;
   final String? imageUrl;
   final double fare;
+  final double internationalFare;
   final List<TourStop> stops;
 
   RouteDetail({
@@ -58,6 +56,7 @@ class RouteDetail {
     required this.description,
     this.imageUrl,
     required this.fare,
+    required this.internationalFare,
     required this.stops,
   });
 
@@ -66,12 +65,24 @@ class RouteDetail {
         .map((s) => TourStop.fromJson(s))
         .toList();
 
+    // Route banners are stored as an array of {path, caption} objects
+    // on the backend; this pulls the first banner's path as the
+    // header image, falling back to older single-image key names.
+    String? bannerUrl;
+    if (json['images'] is List && (json['images'] as List).isNotEmpty) {
+      final firstBanner = (json['images'] as List).first;
+      bannerUrl = firstBanner is Map ? firstBanner['path']?.toString() : firstBanner.toString();
+    } else {
+      bannerUrl = json['imageUrl'] ?? json['image'];
+    }
+
     return RouteDetail(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      imageUrl: json['imageUrl'] ?? json['image'],
+      imageUrl: bannerUrl,
       fare: double.tryParse(json['fare'].toString()) ?? 0.0,
+      internationalFare: double.tryParse((json['internationalFare'] ?? 30).toString()) ?? 30.0,
       stops: stopsList,
     );
   }

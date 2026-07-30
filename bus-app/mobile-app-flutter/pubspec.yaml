@@ -20,6 +20,7 @@ dependencies:
   timezone: ^0.9.4
   webview_flutter: ^4.10.0
   flutter_launcher_icons: ^0.14.1
+  cached_network_image: ^3.4.1
 
 
 dev_dependencies:

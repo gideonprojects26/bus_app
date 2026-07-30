@@ -1,44 +1,39 @@
 // lib/screens/route_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
 import '../models/route_detail_model.dart';
+// ignore: unused_import
+import '../models/booking_model.dart';
+import '../widgets/app_back_button.dart';
+import 'booking_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class RouteDetailScreen extends StatefulWidget {
   final RouteDetail route;
-  final int? targetStopId;
+  final String? targetStopId;
 
-  const RouteDetailScreen({
-    super.key,
-    required this.route,
-    this.targetStopId,
-  });
+  const RouteDetailScreen({super.key, required this.route, this.targetStopId});
 
   @override
   State<RouteDetailScreen> createState() => _RouteDetailScreenState();
 }
 
 class _RouteDetailScreenState extends State<RouteDetailScreen> {
-  final Map<int, GlobalKey> _stopKeys = {};
+  final Map<String, GlobalKey> _stopKeys = {};
 
   @override
   void initState() {
     super.initState();
-
-    // Map keys to stop IDs
     for (var stop in widget.route.stops) {
       _stopKeys[stop.id] = GlobalKey();
     }
 
-    // Scroll to target stop once layout renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.targetStopId != null && _stopKeys.containsKey(widget.targetStopId)) {
         final targetContext = _stopKeys[widget.targetStopId]?.currentContext;
         if (targetContext != null) {
-          Scrollable.ensureVisible(
-            targetContext,
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-          );
+          Scrollable.ensureVisible(targetContext, duration: const Duration(milliseconds: 600), curve: Curves.easeInOut);
         }
       }
     });
@@ -47,94 +42,44 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: Text(
-          widget.route.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF1E1E1E),
-        elevation: 0,
+        leading: const AppBackButton(),
+        title: Text(widget.route.name, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header Image
             if (widget.route.imageUrl != null && widget.route.imageUrl!.isNotEmpty)
-              Image.network(
-                widget.route.imageUrl!,
+              CachedNetworkImage(
+                imageUrl: widget.route.imageUrl!,
                 height: 220,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => Container(
                   height: 220,
-                  color: Colors.grey[850],
-                  child: const Icon(Icons.tour, size: 60, color: Colors.amber),
+                  color: AppColors.black3,
+                  child: const Center(child: CircularProgressIndicator(color: AppColors.yellow)),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 220,
+                  color: AppColors.black3,
+                  child: const Icon(Icons.tour, size: 60, color: AppColors.yellow),
                 ),
               ),
-
-            // Overview Header
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.route.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.amber,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'UGX ${widget.route.fare.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.route.description,
-                    style: TextStyle(
-                      color: Colors.grey[300],
-                      fontSize: 15,
-                      height: 1.4,
-                    ),
-                  ),
+                  Text(widget.route.description, style: const TextStyle(color: AppColors.grey, fontSize: 15, height: 1.4)),
                   const SizedBox(height: 20),
-                  const Divider(color: Colors.grey),
+                  const Divider(color: Colors.white12),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Tour Stops & Highlights',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Tour Stops & Highlights', style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
-
-            // Stops Timeline & 4-Image Carousel
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -148,12 +93,9 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
+                    color: AppColors.black2,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isTarget ? Colors.amber : Colors.grey.shade800,
-                      width: isTarget ? 2 : 1,
-                    ),
+                    border: Border.all(color: isTarget ? AppColors.yellow : AppColors.amber.withValues(alpha: 0.2), width: isTarget ? 2 : 1),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,51 +104,18 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         children: [
                           CircleAvatar(
                             radius: 14,
-                            backgroundColor: Colors.amber,
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
+                            backgroundColor: AppColors.yellow,
+                            child: Text('${index + 1}', style: const TextStyle(color: AppColors.black, fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                           const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              stop.name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          Expanded(child: Text(stop.name, style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.bold))),
                         ],
                       ),
                       const SizedBox(height: 10),
-
-                      Text(
-                        stop.description,
-                        style: TextStyle(
-                          color: Colors.grey[300],
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
+                      Text(stop.description, style: const TextStyle(color: AppColors.grey, fontSize: 14, height: 1.4)),
                       const SizedBox(height: 14),
-
-                      // Carousel
                       if (stop.images.isNotEmpty) ...[
-                        const Text(
-                          'Gallery',
-                          style: TextStyle(
-                            color: Colors.amber,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        const Text('Gallery', style: TextStyle(color: AppColors.yellow, fontSize: 12, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         SizedBox(
                           height: 160,
@@ -217,18 +126,18 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                               return Container(
                                 margin: const EdgeInsets.only(right: 10),
                                 width: 220,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Colors.black,
-                                ),
+                                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: AppColors.black),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    stop.images[imgIndex],
+                                  child: CachedNetworkImage(
+                                    imageUrl: stop.images[imgIndex],
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => Container(
-                                      color: Colors.grey[800],
-                                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                                    placeholder: (context, url) => const Center(
+                                      child: CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 2),
+                                    ),
+                                    errorWidget: (context, url, error) => Container(
+                                      color: AppColors.black3,
+                                      child: const Icon(Icons.broken_image, color: AppColors.grey),
                                     ),
                                   ),
                                 ),
@@ -246,27 +155,22 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
           ],
         ),
       ),
-
-      // Fixed CTA Button
       bottomSheet: Container(
         padding: const EdgeInsets.all(16),
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.black2,
         child: SizedBox(
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => BookingScreen(preselectedRouteId: widget.route.id)));
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              backgroundColor: AppColors.yellow,
+              foregroundColor: AppColors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Book This Tour',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            child: const Text('Book This Tour', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ),
       ),
