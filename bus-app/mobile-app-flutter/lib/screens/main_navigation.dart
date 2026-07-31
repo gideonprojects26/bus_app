@@ -12,9 +12,7 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  // Index order matches the visual left-to-right layout: Activity (0),
-  // Home (1, center), Profile (2) — Home sits in the middle as requested.
-  int _currentIndex = 1;
+  int _currentIndex = 1; // Home stays center/default
 
   final List<Widget> _screens = const [
     ActivityScreen(),
@@ -26,7 +24,7 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: _CustomBottomBar(
+      bottomNavigationBar: _ScallopBottomBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
       ),
@@ -34,68 +32,80 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 }
 
-// Custom bottom bar: flat side tabs (Activity, Profile) plus a large
-// circular Home button that overlaps the top edge of the bar, giving
-// it a "raised" appearance distinct from the other two tabs.
-class _CustomBottomBar extends StatelessWidget {
+// A bottom bar whose top edge smoothly curves inward around the
+// center button, "cradling" it in a wave-shaped dip, rather than the
+// button just floating above a flat bar edge.
+class _ScallopBottomBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _CustomBottomBar({required this.currentIndex, required this.onTap});
+  const _ScallopBottomBar({required this.currentIndex, required this.onTap});
+
+  static const double barHeight = 68.0;
+  static const double notchRadius = 38.0;
+  static const double buttonSize = 64.0;
 
   @override
   Widget build(BuildContext context) {
-    const barHeight = 64.0;
-    const centerButtonSize = 66.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final notchCenterX = screenWidth / 2;
 
     return SizedBox(
-      height: barHeight + 26, // extra height so the raised button has room to overlap upward
+      height: barHeight + 24,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.bottomCenter,
         children: [
-          // The flat bar itself, with a notch-like gap left empty in the
-          // middle for the raised button to sit over.
-          Container(
-            height: barHeight,
-            decoration: BoxDecoration(
-              color: AppColors.black2,
-              border: Border(top: BorderSide(color: AppColors.amber.withValues(alpha: 0.2))),
+          // The curved bar shape itself, drawn with a smooth dip cut
+          // into its top edge around the center button's position.
+          CustomPaint(
+            size: Size(screenWidth, barHeight),
+            painter: _ScallopPainter(
+              notchCenterX: notchCenterX,
+              notchRadius: notchRadius,
+              fillColor: AppColors.black2,
+              borderColor: AppColors.amber.withValues(alpha: 0.25),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _SideTabItem(
-                    icon: Icons.receipt_long_outlined,
-                    activeIcon: Icons.receipt_long,
-                    label: 'Activity',
-                    isActive: currentIndex == 0,
-                    onTap: () => onTap(0),
-                  ),
+            child: SizedBox(
+              height: barHeight,
+              width: screenWidth,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _SideTabItem(
+                        icon: Icons.receipt_long_outlined,
+                        activeIcon: Icons.receipt_long,
+                        label: 'Activity',
+                        isActive: currentIndex == 0,
+                        onTap: () => onTap(0),
+                      ),
+                    ),
+                    const SizedBox(width: notchRadius * 2),
+                    Expanded(
+                      child: _SideTabItem(
+                        icon: Icons.person_outline,
+                        activeIcon: Icons.person,
+                        label: 'Profile',
+                        isActive: currentIndex == 2,
+                        onTap: () => onTap(2),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: centerButtonSize), // reserved empty space for the raised button
-                Expanded(
-                  child: _SideTabItem(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    label: 'Profile',
-                    isActive: currentIndex == 2,
-                    onTap: () => onTap(2),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
 
-          // The raised, larger circular Home button, positioned to
-          // overlap upward past the bar's top edge.
+          // The raised circular Home button, sitting inside the dip.
           Positioned(
-            bottom: barHeight - (centerButtonSize / 2) - 6,
+            bottom: barHeight - (buttonSize / 2) - 10,
             child: GestureDetector(
               onTap: () => onTap(1),
               child: Container(
-                width: centerButtonSize,
-                height: centerButtonSize,
+                width: buttonSize,
+                height: buttonSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: currentIndex == 1 ? AppColors.yellow : AppColors.black3,
@@ -114,7 +124,7 @@ class _CustomBottomBar extends StatelessWidget {
                 child: Icon(
                   currentIndex == 1 ? Icons.home : Icons.home_outlined,
                   color: currentIndex == 1 ? AppColors.black : AppColors.white,
-                  size: 30,
+                  size: 28,
                 ),
               ),
             ),
@@ -123,6 +133,82 @@ class _CustomBottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+// Draws the bar's fill with a smooth wave-shaped dip cut into the top
+// edge, centered on notchCenterX, using cubic Bezier curves for a
+// soft, rounded transition rather than a sharp cutout.
+class _ScallopPainter extends CustomPainter {
+  final double notchCenterX;
+  final double notchRadius;
+  final Color fillColor;
+  final Color borderColor;
+
+  _ScallopPainter({
+    required this.notchCenterX,
+    required this.notchRadius,
+    required this.fillColor,
+    required this.borderColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path();
+    final dipWidth = notchRadius * 2.6;
+    final dipDepth = notchRadius * 0.95;
+
+    final leftCurveStart = notchCenterX - dipWidth;
+    final rightCurveEnd = notchCenterX + dipWidth;
+
+    path.moveTo(0, 0);
+    path.lineTo(leftCurveStart, 0);
+
+    // Curve down into the dip
+    path.cubicTo(
+      leftCurveStart + dipWidth * 0.35, 0,
+      notchCenterX - notchRadius * 1.15, dipDepth,
+      notchCenterX, dipDepth,
+    );
+    // Curve back up out of the dip
+    path.cubicTo(
+      notchCenterX + notchRadius * 1.15, dipDepth,
+      rightCurveEnd - dipWidth * 0.35, 0,
+      rightCurveEnd, 0,
+    );
+
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+
+    final fillPaint = Paint()..color = fillColor;
+    canvas.drawPath(path, fillPaint);
+
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final borderPath = Path();
+    borderPath.moveTo(0, 0);
+    borderPath.lineTo(leftCurveStart, 0);
+    borderPath.cubicTo(
+      leftCurveStart + dipWidth * 0.35, 0,
+      notchCenterX - notchRadius * 1.15, dipDepth,
+      notchCenterX, dipDepth,
+    );
+    borderPath.cubicTo(
+      notchCenterX + notchRadius * 1.15, dipDepth,
+      rightCurveEnd - dipWidth * 0.35, 0,
+      rightCurveEnd, 0,
+    );
+    borderPath.lineTo(size.width, 0);
+    canvas.drawPath(borderPath, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScallopPainter oldDelegate) =>
+      oldDelegate.notchCenterX != notchCenterX || oldDelegate.notchRadius != notchRadius;
 }
 
 class _SideTabItem extends StatelessWidget {
