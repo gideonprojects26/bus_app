@@ -25,7 +25,6 @@ class _ImageCarouselState extends State<ImageCarousel> {
   // Make sure these exact files exist in your assets/images/ folder
   // and are declared in pubspec.yaml under flutter > assets
   final List<String> _imagePaths = [
-    'assets/images/bus1.jpg',
     'assets/images/bus_1.jpg',
     'assets/images/bus_2.jpg',
     'assets/images/bus_3.jpg',

@@ -1,12 +1,14 @@
 const { Booking, Route } = require('../models');
-const { v4: uuidv4 } = require('uuid');
 const { decideProvider } = require('../services/providerRouter');
 const pesapalService = require('../services/pesapalService');
 const momoService = require('../services/momoService');
 
-// Helper function to generate IDs in format: KSB-XXXXXX
+/**
+ * Helper function to generate custom string IDs in format: KSB-XXXXXX
+ * Excludes confusing characters (0, O, 1, I).
+ */
 function generateKsbBookingId() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excludes confusing 0, O, 1, I
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let randomPart = '';
   for (let i = 0; i < 6; i++) {
     randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -14,6 +16,9 @@ function generateKsbBookingId() {
   return `KSB-${randomPart}`; // e.g., "KSB-9X2K7M"
 }
 
+/**
+ * Initiates payment for a bus booking (MTN MoMo, Airtel Money, or Pesapal)
+ */
 const initiatePayment = async (req, res) => {
   try {
     const {
@@ -21,6 +26,7 @@ const initiatePayment = async (req, res) => {
       seatCount, isLocal, paymentMethodChosen, phoneNumber, email,
     } = req.body;
 
+    // 1. Input Validation
     if (!routeId || !pickupStop || !bookingDate || !bookingTime || !paymentMethodChosen) {
       return res.status(400).json({ message: 'Missing required booking fields.' });
     }
@@ -29,6 +35,7 @@ const initiatePayment = async (req, res) => {
       return res.status(400).json({ message: 'Phone number is required for Mobile Money.' });
     }
 
+    // 2. Fetch Route to calculate total fare server-side
     const route = await Route.findByPk(routeId);
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' });
@@ -39,15 +46,14 @@ const initiatePayment = async (req, res) => {
     const ratePerPerson = isLocal ? Number(route.fare) : Number(route.internationalFare);
     const totalFare = ratePerPerson * passengerCount;
 
+    // 3. Determine payment provider (e.g., mtn_direct, airtel_direct, or pesapal)
     let routing = decideProvider({ paymentMethodChosen, phoneNumber, currency });
     
-    // Generate custom KSB formatted ID
+    // 4. Generate custom KSB ID and transaction reference string
     const customBookingId = generateKsbBookingId();
     const txRef = `booking-${customBookingId}`;
 
-    // -------------------------------------------------------------
-    // 1. CONFIGURATION CHECKS
-    // -------------------------------------------------------------
+    // 5. Environment configuration fallback checks
     const isMomoConfigured = Boolean(process.env.MOMO_SUBSCRIPTION_KEY);
     const isAirtelConfigured = Boolean(
       process.env.AIRTEL_CLIENT_ID && process.env.AIRTEL_CLIENT_SECRET
@@ -63,7 +69,7 @@ const initiatePayment = async (req, res) => {
       routing.provider = 'pesapal';
     }
 
-    // Create the booking record with explicit custom string ID
+    // 6. Create initial Booking record in database
     const booking = await Booking.create({
       id: customBookingId,
       routeId,
@@ -81,14 +87,10 @@ const initiatePayment = async (req, res) => {
       provider: routing.provider,
       phoneNumber: routing.normalizedPhone,
       txRef,
-      userId: req.user.id,
+      userId: req.user?.id,
     });
 
-    // -------------------------------------------------------------
-    // 2. RUNTIME EXECUTION & FALLBACKS
-    // -------------------------------------------------------------
-
-    // --- MTN DIRECT EXECUTION ---
+    // 7. Process Direct MTN MoMo (USSD Push Prompt)
     if (routing.provider === 'mtn_direct') {
       try {
         await momoService.requestToPay({
@@ -113,7 +115,7 @@ const initiatePayment = async (req, res) => {
       }
     }
 
-    // --- AIRTEL DIRECT EXECUTION ---
+    // 8. Process Direct Airtel Money (USSD Push Prompt)
     if (routing.provider === 'airtel_direct') {
       try {
         throw new Error('Airtel Direct integration pending production credentials.');
@@ -124,7 +126,7 @@ const initiatePayment = async (req, res) => {
       }
     }
 
-    // --- PESAPAL EXECUTION (Primary or Fallback) ---
+    // 9. Process Pesapal Payment (Card / Webview Flow)
     const customerEmail = email || req.user?.email || 'customer@busapp.com';
 
     const pesapalResponse = await pesapalService.submitOrder({
@@ -134,12 +136,13 @@ const initiatePayment = async (req, res) => {
       description: `Payment for ${route.name}`,
       email: customerEmail,
       phone: routing.normalizedPhone,
-      firstName: req.user.fullName?.split(' ')[0] || 'Rider',
-      lastName: req.user.fullName?.split(' ').slice(1).join(' ') || '',
+      firstName: req.user?.fullName?.split(' ')[0] || 'Rider',
+      lastName: req.user?.fullName?.split(' ').slice(1).join(' ') || '',
     });
 
     console.log('📌 Pesapal Response Object:', pesapalResponse);
 
+    // Save Pesapal order tracking ID to database record
     await booking.update({ providerTransactionId: pesapalResponse.order_tracking_id });
 
     return res.status(201).json({
@@ -152,12 +155,16 @@ const initiatePayment = async (req, res) => {
       totalFare,
       currency,
     });
+
   } catch (error) {
     console.error('Payment initiation error:', error.response?.data || error.message);
     res.status(500).json({ message: 'Server error initiating payment.' });
   }
 };
 
+/**
+ * Checks the real-time payment status from the gateway provider
+ */
 const getPaymentStatus = async (req, res) => {
   try {
     const { txRef } = req.params;
@@ -198,6 +205,9 @@ const getPaymentStatus = async (req, res) => {
   }
 };
 
+/**
+ * IPN Webhook endpoint for Pesapal backend-to-backend status updates
+ */
 const pesapalWebhook = async (req, res) => {
   try {
     const { OrderTrackingId } = req.query;
@@ -220,7 +230,9 @@ const pesapalWebhook = async (req, res) => {
   }
 };
 
-// Handle GET redirect from Pesapal after completing payment
+/**
+ * Handles GET redirect from Pesapal after completing payment in WebView
+ */
 const pesapalCallback = async (req, res) => {
   try {
     const { OrderTrackingId } = req.query;
@@ -235,7 +247,6 @@ const pesapalCallback = async (req, res) => {
       }
     }
 
-    // HTML response served inside Flutter WebView
     res.send(`
       <html>
         <head><title>Payment Complete</title></head>
@@ -253,7 +264,9 @@ const pesapalCallback = async (req, res) => {
   }
 };
 
-// 1. Fetch all bookings across the app
+/**
+ * Fetch all bookings across the entire app (Admin Dashboard)
+ */
 const getAllBookings = async (req, res) => {
   try {
     const bookings = await Booking.findAll({
@@ -266,7 +279,9 @@ const getAllBookings = async (req, res) => {
   }
 };
 
-// 2. Fetch bookings for the logged-in mobile user
+/**
+ * Fetch bookings specifically for the currently logged-in mobile user
+ */
 const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.findAll({
@@ -280,7 +295,9 @@ const getMyBookings = async (req, res) => {
   }
 };
 
-// 3. Update a booking's status
+/**
+ * Admin status update for a booking
+ */
 const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -300,7 +317,9 @@ const updateBookingStatus = async (req, res) => {
   }
 };
 
-// 4. Cancel a booking
+/**
+ * Mobile user cancellation of their own booking
+ */
 const cancelBooking = async (req, res) => {
   try {
     const { id } = req.params;
@@ -320,7 +339,7 @@ const cancelBooking = async (req, res) => {
 
 module.exports = {
   initiatePayment,
-  createBooking: initiatePayment, // Links createBooking to initiatePayment
+  createBooking: initiatePayment, // Maps createBooking alias to initiatePayment
   getPaymentStatus,
   pesapalWebhook,
   pesapalCallback,
