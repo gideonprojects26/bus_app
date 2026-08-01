@@ -44,7 +44,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (success && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
