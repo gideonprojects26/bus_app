@@ -36,7 +36,7 @@ class BookingProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final url = Uri.parse('https://bus-app-backend-hrxf.onrender.com/api/bookings');
+    final url = Uri.parse('https://bus-app-backend-hrxf.onrender.com/api/bookings/my-bookings');
 
     try {
       final token = await _getToken();
