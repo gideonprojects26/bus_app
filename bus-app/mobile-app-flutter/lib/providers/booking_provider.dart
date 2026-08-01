@@ -27,7 +27,7 @@ class BookingProvider with ChangeNotifier {
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     // Change 'token' below to the exact key name you used when saving the token during login
-    return prefs.getString('token') ?? prefs.getString('userToken');
+    return prefs.getString('auth_token') ?? prefs.getString('userToken');
   }
 
   /// Fetch user bookings from backend API
