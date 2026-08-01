@@ -43,7 +43,7 @@ class BookingProvider with ChangeNotifier {
 
       // Handle case where user is not logged in / token is missing
       if (token == null || token.isEmpty) {
-        _errorMessage = 'Authentication missing. Please log in again.';
+        _errorMessage = 'Please sign in to view your bookings.';
         _isLoading = false;
         notifyListeners();
         return;
@@ -61,7 +61,7 @@ class BookingProvider with ChangeNotifier {
         final List<dynamic> data = jsonDecode(response.body);
         _bookings = data.map((json) => BookingModel.fromJson(json)).toList();
       } else if (response.statusCode == 401) {
-        _errorMessage = 'Session expired. Please log in again.';
+        _errorMessage = 'Please sign in to view your bookings.';
       } else {
         _errorMessage = 'Failed to load bookings from server (${response.statusCode})';
       }

@@ -6,6 +6,7 @@ import '../models/booking_model.dart';
 import '../widgets/app_pill_button.dart';
 import '../widgets/app_icon_avatar.dart';
 import 'routes_screen.dart';
+import 'receipt_screen.dart';
 
 // Converted to StatefulWidget so we can use lifecycle hooks (initState)
 class ActivityScreen extends StatefulWidget {
@@ -201,19 +202,33 @@ class _BookingList extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (showCancel && (booking.status == 'upcoming' || booking.status == 'confirmed')) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            Provider.of<BookingProvider>(context, listen: false).cancelBooking(booking.id);
-                          },
-                          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
-                          child: const Text('Cancel Booking', style: TextStyle(color: AppColors.red, fontSize: 12)),
-                        ),
-                      ),
-                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (booking.status != 'cancelled')
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => ReceiptScreen(booking: booking)),
+                              );
+                            },
+                            style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+                            child: const Text('View Receipt', style: TextStyle(color: AppColors.yellow, fontSize: 12, fontWeight: FontWeight.w600)),
+                          )
+                        else
+                          const SizedBox.shrink(),
+                        if (showCancel && (booking.status == 'upcoming' || booking.status == 'confirmed'))
+                          TextButton(
+                            onPressed: () {
+                              Provider.of<BookingProvider>(context, listen: false).cancelBooking(booking.id);
+                            },
+                            style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+                            child: const Text('Cancel Booking', style: TextStyle(color: AppColors.red, fontSize: 12)),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
