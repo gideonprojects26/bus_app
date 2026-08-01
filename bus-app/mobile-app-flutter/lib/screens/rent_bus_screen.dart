@@ -79,6 +79,76 @@ class _RentBusScreenState extends State<RentBusScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ---- Guarantee Badge (adapted from FlutterFlow component) ----
+                // Replaces FlutterFlowTheme with AppColors and standard Text styles
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.black2, // Using your app's dark surface color instead of secondaryBackground
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Circular icon container with yellow accent background
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.yellow.withAlpha(38), // ~15% opacity yellow (0x26 in hex)
+                            borderRadius: BorderRadius.circular(9999), // Fully rounded
+                          ),
+                          alignment: const AlignmentDirectional(0, 0), // Center the icon
+                          child: const Icon(
+                            Icons.verified_user_rounded,
+                            color: AppColors.yellow, // Using your yellow as the icon color
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16), // Replaces .divide(SizedBox(width: 16))
+                        // Text column
+                        const Expanded(
+                          flex: 1,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start, // Changed from center to start for better alignment
+                            children: [
+                              Text(
+                                'Pearl Premium Guarantee',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 14, // Approximate labelLarge size
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.0,
+                                  height: 1.4,
+                                ),
+                              ),
+                              SizedBox(height: 4), // Replaces .divide(SizedBox(height: 4))
+                              Text(
+                                'All rentals include a professional driver and comprehensive travel insurance.',
+                                style: TextStyle(
+                                  color: AppColors.grey, // Using grey for secondary text
+                                  fontSize: 12, // Approximate bodySmall size
+                                  fontWeight: FontWeight.normal,
+                                  letterSpacing: 0.0,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24), // Spacing after the badge before the form fields
+                
+                // ---- Original form fields ----
                 TextFormField(
                   controller: _nameController,
                   style: const TextStyle(color: AppColors.white),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
+// ignore: unused_import
 import '../utils/constants.dart';
 import '../models/backend_route_model.dart';
 import '../services/route_service.dart';
@@ -78,7 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: theme.textPrimary),
                         ),
                         const SizedBox(height: 4),
+                        // ignore: prefer_const_constructors
                         Row(
+                          // ignore: prefer_const_literals_to_create_immutables
                           children: [
                             const Icon(Icons.location_on_rounded, color: AppColors.yellow, size: 16),
                             const SizedBox(width: 4),
