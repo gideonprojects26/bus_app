@@ -23,7 +23,7 @@ class AppColors {
   static const Color grey = Color(0xFF9E9E9E);
 
   // Dark theme surface/text values
-  static const Color darkBackground = Color(0xFF191919);
+  static const Color darkBackground = Color(0xFF000000); // was 0xFF191919 — pure black, not charcoal, for true dark mode
   static const Color darkSurface = Color(0xFF242424);
   static const Color darkSurfaceElevated = Color(0xFF2E2E2E);
   static const Color darkTextPrimary = Color(0xFFFFFFFF);
