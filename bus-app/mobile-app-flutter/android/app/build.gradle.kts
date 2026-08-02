@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.bus_app"
-    compileSdk = 34  // ← CHANGED: Was flutter.compileSdkVersion, now hardcoded to 34
+    compileSdk = 36  // ← CHANGED: 34 → 36 (required by google_maps, shared_preferences, sqflite, webview, etc.)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,7 +18,7 @@ android {
     defaultConfig {
         applicationId = "com.example.bus_app"
         minSdk = flutter.minSdkVersion
-        targetSdk = 34  // ← CHANGED: Was flutter.targetSdkVersion, now hardcoded to 34
+        targetSdk = 36  // ← CHANGED: 34 → 36 (matches compileSdk)
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
