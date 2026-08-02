@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.bus_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34  // ← CHANGED: Was flutter.compileSdkVersion, now hardcoded to 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,7 +18,7 @@ android {
     defaultConfig {
         applicationId = "com.example.bus_app"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34  // ← CHANGED: Was flutter.targetSdkVersion, now hardcoded to 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

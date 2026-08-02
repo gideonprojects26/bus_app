@@ -1,3 +1,5 @@
+// ignore_for_file: duplicate_ignore, prefer_const_constructors
+
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -55,6 +57,7 @@ class ReceiptPdfService {
                 pw.Center(
                   child: pw.Text(
                     'Booking Receipt',
+                    // ignore: prefer_const_constructors
                     style: pw.TextStyle(
                       fontSize: 16,
                       color: PdfColors.grey,
@@ -134,6 +137,7 @@ class ReceiptPdfService {
                 pw.Center(
                   child: pw.Text(
                     'Thank you for choosing Bus Tours Uganda!',
+                    // ignore: prefer_const_constructors
                     style: pw.TextStyle(
                       fontSize: 12,
                       color: PdfColors.grey,
@@ -143,6 +147,7 @@ class ReceiptPdfService {
                 pw.Center(
                   child: pw.Text(
                     'For inquiries: support@bustours.co.ug | +256 700 123 456',
+                    // ignore: prefer_const_constructors
                     style: pw.TextStyle(
                       fontSize: 10,
                       color: PdfColors.grey,

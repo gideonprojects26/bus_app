@@ -109,7 +109,9 @@ class ReceiptScreen extends StatelessWidget {
                       // Handle any errors during PDF generation
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
+                          // ignore: prefer_const_constructors
                           SnackBar(
+                            // ignore: prefer_const_constructors
                             content: Text('Could not generate receipt. Please try again.'),
                             backgroundColor: AppColors.red,
                           ),
