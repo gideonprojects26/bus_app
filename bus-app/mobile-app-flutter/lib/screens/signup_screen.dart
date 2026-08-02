@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import 'main_navigation.dart';
 import 'terms_conditions_screen.dart';
 import 'package:flutter/gestures.dart';
 
+/// Signup screen allowing new users to create an account with full name,
+/// phone number, password, and acceptance of terms and conditions.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// text colors instead of hardcoded AppColors.white.
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -56,8 +62,11 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
 
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(title: const Text('Create Account')),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -69,16 +78,15 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   decoration: const InputDecoration(hintText: 'Full Name'),
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 
-                const SizedBox(height: 16),
                 TextFormField(
                   controller: _phoneController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   decoration: const InputDecoration(hintText: 'Phone Number'),
                   keyboardType: TextInputType.phone,
                   validator: (v) => (v == null || v.length < 9) ? 'Enter a valid phone number' : null,
@@ -86,14 +94,14 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     hintText: 'Password',
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.grey,
+                        color: AppColors.grey, // grey stays as static accent
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -104,14 +112,14 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _confirmPasswordController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
                     hintText: 'Confirm Password',
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.grey,
+                        color: AppColors.grey, // grey stays as static accent
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
@@ -133,9 +141,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: Checkbox(
                         value: _acceptedTerms,
                         onChanged: (value) => setState(() => _acceptedTerms = value ?? false),
-                        activeColor: AppColors.yellow,
-                        checkColor: AppColors.black,
-                        side: const BorderSide(color: AppColors.grey),
+                        activeColor: AppColors.yellow, // yellow stays as brand accent
+                        checkColor: AppColors.black, // black check on yellow — optimal contrast always
+                        side: const BorderSide(color: AppColors.grey), // grey stays as static accent
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -144,12 +152,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
                         child: RichText(
                           text: TextSpan(
-                            style: const TextStyle(color: AppColors.grey, fontSize: 13, height: 1.4),
+                            style: const TextStyle(color: AppColors.grey, fontSize: 13, height: 1.4), // grey stays as static accent
                             children: [
                               const TextSpan(text: 'I have read and agree to the '),
                               TextSpan(
                                 text: 'Terms and Conditions',
-                                style: const TextStyle(color: AppColors.yellow, fontWeight: FontWeight.w600),
+                                style: const TextStyle(color: AppColors.yellow, fontWeight: FontWeight.w600), // yellow stays as brand accent
                                 recognizer: (TapGestureRecognizer()
                                   ..onTap = () {
                                     Navigator.push(

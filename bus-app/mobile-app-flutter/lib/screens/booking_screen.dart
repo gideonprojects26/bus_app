@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../models/backend_route_model.dart';
 import '../models/booking_model.dart';
@@ -9,6 +11,9 @@ import 'payment_method_screen.dart';
 
 /// Screen allowing passengers to configure tour booking details
 /// such as route, pickup location, date, time, passenger count, and pricing tier.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.black/black2/black3/white.
 class BookingScreen extends StatefulWidget {
   // Optional preselected route ID passed from previous screens (e.g., RoutesScreen)
   final String? preselectedRouteId;
@@ -126,7 +131,11 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background,
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Book a Tour'),
@@ -158,8 +167,8 @@ class _BookingScreenState extends State<BookingScreen> {
                         const SizedBox(height: 6),
                         DropdownButtonFormField<BackendRoute>(
                           initialValue: _selectedRoute,
-                          dropdownColor: AppColors.black2,
-                          style: const TextStyle(color: AppColors.white),
+                          dropdownColor: theme.surface, // was AppColors.black2 — now theme-aware
+                          style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                           decoration: const InputDecoration(hintText: 'Select a route'),
                           // Explicitly typed DropdownMenuItem list to prevent type mismatches
                           items: _routes.map<DropdownMenuItem<BackendRoute>>((r) {
@@ -180,8 +189,8 @@ class _BookingScreenState extends State<BookingScreen> {
                         const SizedBox(height: 6),
                         DropdownButtonFormField<Map<String, dynamic>>(
                           initialValue: _selectedStop,
-                          dropdownColor: AppColors.black2,
-                          style: const TextStyle(color: AppColors.white),
+                          dropdownColor: theme.surface, // was AppColors.black2 — now theme-aware
+                          style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                           decoration: const InputDecoration(hintText: 'Select pickup stop'),
                           // Maps over stops of the selected route safely
                           items: (_selectedRoute?.stops ?? []).map<DropdownMenuItem<Map<String, dynamic>>>((stop) {
@@ -206,6 +215,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 value: _selectedDate == null ? 'Select date' : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                                 icon: Icons.calendar_today_outlined,
                                 onTap: _pickDate,
+                                theme: theme, // pass theme to helper widget
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -215,6 +225,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 value: _selectedTime == null ? 'Select time' : _selectedTime!.format(context),
                                 icon: Icons.access_time,
                                 onTap: _pickTime,
+                                theme: theme, // pass theme to helper widget
                               ),
                             ),
                           ],
@@ -226,11 +237,17 @@ class _BookingScreenState extends State<BookingScreen> {
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(color: AppColors.black2, borderRadius: BorderRadius.circular(10)),
+                          decoration: BoxDecoration(
+                            color: theme.surface, // was AppColors.black2 — now theme-aware
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('$_passengers', style: const TextStyle(color: AppColors.white, fontSize: 16)),
+                              Text(
+                                '$_passengers',
+                                style: TextStyle(color: theme.textPrimary, fontSize: 16), // was AppColors.white — now theme-aware
+                              ),
                               Row(
                                 children: [
                                   IconButton(
@@ -253,9 +270,23 @@ class _BookingScreenState extends State<BookingScreen> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Expanded(child: _TypeToggle(label: 'Local', isSelected: _isLocal, onTap: () => setState(() => _isLocal = true))),
+                            Expanded(
+                              child: _TypeToggle(
+                                label: 'Local',
+                                isSelected: _isLocal,
+                                onTap: () => setState(() => _isLocal = true),
+                                theme: theme, // pass theme to helper widget
+                              ),
+                            ),
                             const SizedBox(width: 12),
-                            Expanded(child: _TypeToggle(label: 'International', isSelected: !_isLocal, onTap: () => setState(() => _isLocal = false))),
+                            Expanded(
+                              child: _TypeToggle(
+                                label: 'International',
+                                isSelected: !_isLocal,
+                                onTap: () => setState(() => _isLocal = false),
+                                theme: theme, // pass theme to helper widget
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -296,14 +327,22 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 }
 
-/// Helper tile widget for Date and Time input fields
+/// Helper tile widget for Date and Time input fields.
+/// Now theme-aware — accepts ThemeProvider for surface and text colors.
 class _SelectorTile extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
   final VoidCallback onTap;
+  final ThemeProvider theme; // added for light/dark mode support
 
-  const _SelectorTile({required this.label, required this.value, required this.icon, required this.onTap});
+  const _SelectorTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onTap,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -311,13 +350,25 @@ class _SelectorTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: AppColors.black2, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: theme.surface, // was AppColors.black2 — now theme-aware
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [Icon(icon, color: AppColors.yellow, size: 16), const SizedBox(width: 6), Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12))]),
+            Row(
+              children: [
+                Icon(icon, color: AppColors.yellow, size: 16),
+                const SizedBox(width: 6),
+                Text(label, style: const TextStyle(color: AppColors.grey, fontSize: 12)),
+              ],
+            ),
             const SizedBox(height: 6),
-            Text(value, style: const TextStyle(color: AppColors.white, fontSize: 13)),
+            Text(
+              value,
+              style: TextStyle(color: theme.textPrimary, fontSize: 13), // was AppColors.white — now theme-aware
+            ),
           ],
         ),
       ),
@@ -325,13 +376,20 @@ class _SelectorTile extends StatelessWidget {
   }
 }
 
-/// Helper widget for rendering Local/International toggle buttons
+/// Helper widget for rendering Local/International toggle buttons.
+/// Now theme-aware — accepts ThemeProvider for surface and text colors.
 class _TypeToggle extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final ThemeProvider theme; // added for light/dark mode support
 
-  const _TypeToggle({required this.label, required this.isSelected, required this.onTap});
+  const _TypeToggle({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -341,10 +399,18 @@ class _TypeToggle extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.yellow : AppColors.black2,
+          // Selected state keeps yellow; unselected uses theme-aware surface color
+          color: isSelected ? AppColors.yellow : theme.surface, // was AppColors.black2 — now theme-aware
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Text(label, style: TextStyle(color: isSelected ? AppColors.black : AppColors.white, fontWeight: FontWeight.w600)),
+        child: Text(
+          label,
+          style: TextStyle(
+            // Selected text uses black (contrast on yellow); unselected uses theme-aware text color
+            color: isSelected ? AppColors.black : theme.textPrimary, // was AppColors.white — now theme-aware
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../services/rental_service.dart';
 import '../widgets/app_back_button.dart';
 
+/// Screen for submitting a bus rental inquiry with passenger details,
+/// preferred date, and additional requirements.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.black2/white.
 class RentBusScreen extends StatefulWidget {
   const RentBusScreen({super.key});
 
@@ -69,7 +75,11 @@ class _RentBusScreenState extends State<RentBusScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(leading: const AppBackButton(), title: const Text('Rent a Bus')),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -80,10 +90,10 @@ class _RentBusScreenState extends State<RentBusScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ---- Guarantee Badge (adapted from FlutterFlow component) ----
-                // Replaces FlutterFlowTheme with AppColors and standard Text styles
+                // Replaces FlutterFlowTheme with theme-aware colors and standard Text styles
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.black2, // Using your app's dark surface color instead of secondaryBackground
+                    color: theme.surface, // was AppColors.black2 — now theme-aware
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Padding(
@@ -110,7 +120,7 @@ class _RentBusScreenState extends State<RentBusScreen> {
                         ),
                         const SizedBox(width: 16), // Replaces .divide(SizedBox(width: 16))
                         // Text column
-                        const Expanded(
+                        Expanded(
                           flex: 1,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -120,18 +130,18 @@ class _RentBusScreenState extends State<RentBusScreen> {
                               Text(
                                 'Pearl Premium Guarantee',
                                 style: TextStyle(
-                                  color: AppColors.white,
+                                  color: theme.textPrimary, // was AppColors.white — now theme-aware
                                   fontSize: 14, // Approximate labelLarge size
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.0,
                                   height: 1.4,
                                 ),
                               ),
-                              SizedBox(height: 4), // Replaces .divide(SizedBox(height: 4))
-                              Text(
+                              const SizedBox(height: 4), // Replaces .divide(SizedBox(height: 4))
+                              const Text(
                                 'All rentals include a professional driver and comprehensive travel insurance.',
                                 style: TextStyle(
-                                  color: AppColors.grey, // Using grey for secondary text
+                                  color: AppColors.grey, // Using grey for secondary text — static accent
                                   fontSize: 12, // Approximate bodySmall size
                                   fontWeight: FontWeight.normal,
                                   letterSpacing: 0.0,
@@ -151,14 +161,14 @@ class _RentBusScreenState extends State<RentBusScreen> {
                 // ---- Original form fields ----
                 TextFormField(
                   controller: _nameController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   decoration: const InputDecoration(hintText: 'Full Name'),
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _phoneController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(hintText: 'Phone Number'),
                   validator: (v) => (v == null || v.length < 9) ? 'Enter a valid phone number' : null,
@@ -166,7 +176,7 @@ class _RentBusScreenState extends State<RentBusScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _passengersController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(hintText: 'Number of Passengers'),
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -176,14 +186,17 @@ class _RentBusScreenState extends State<RentBusScreen> {
                   onTap: _pickDate,
                   child: Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: AppColors.black2, borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(
+                      color: theme.surface, // was AppColors.black2 — now theme-aware
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Row(
                       children: [
                         const Icon(Icons.calendar_today_outlined, color: AppColors.yellow, size: 18),
                         const SizedBox(width: 10),
                         Text(
                           _neededDate == null ? 'Select date needed' : '${_neededDate!.day}/${_neededDate!.month}/${_neededDate!.year}',
-                          style: const TextStyle(color: AppColors.white),
+                          style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                         ),
                       ],
                     ),
@@ -192,7 +205,7 @@ class _RentBusScreenState extends State<RentBusScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _messageController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   maxLines: 4,
                   decoration: const InputDecoration(hintText: 'Additional details (optional)'),
                 ),

@@ -1,6 +1,9 @@
 // lib/screens/route_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../models/route_detail_model.dart';
 // ignore: unused_import
@@ -8,8 +11,13 @@ import '../models/booking_model.dart';
 import '../widgets/app_back_button.dart';
 import '../widgets/full_screen_image_viewer.dart'; // Import the full-screen viewer
 import 'booking_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
+/// Screen displaying detailed information about a tour route, including
+/// hero image, description, and a scrollable list of tour stops with
+/// image galleries. Supports deep-linking to a specific stop via targetStopId.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.black2/black3/white.
 class RouteDetailScreen extends StatefulWidget {
   final RouteDetail route;
   final String? targetStopId;
@@ -51,7 +59,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: Text(widget.route.name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -71,13 +83,13 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                 // Loading placeholder while image loads
                 placeholder: (context, url) => Container(
                   height: 220,
-                  color: AppColors.black3,
+                  color: theme.surfaceElevated, // was AppColors.black3 — now theme-aware
                   child: const Center(child: CircularProgressIndicator(color: AppColors.yellow)),
                 ),
                 // Error fallback if image fails to load
                 errorWidget: (context, url, error) => Container(
                   height: 220,
-                  color: AppColors.black3,
+                  color: theme.surfaceElevated, // was AppColors.black3 — now theme-aware
                   child: const Icon(Icons.tour, size: 60, color: AppColors.yellow),
                 ),
               ),
@@ -92,19 +104,20 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                   Text(
                     widget.route.description, 
                     style: const TextStyle(
-                      color: AppColors.grey, 
+                      color: AppColors.grey, // grey stays as static accent
                       fontSize: 15, 
                       height: 1.4,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Divider(color: Colors.white12),
+                  // Divider — uses theme-aware color instead of hardcoded white12
+                  Divider(color: theme.textPrimary.withValues(alpha: 0.12)), // was Colors.white12 — now theme-aware
                   const SizedBox(height: 10),
                   // Section header for tour stops
-                  const Text(
+                  Text(
                     'Tour Stops & Highlights', 
                     style: TextStyle(
-                      color: AppColors.white, 
+                      color: theme.textPrimary, // was AppColors.white — now theme-aware
                       fontSize: 20, 
                       fontWeight: FontWeight.bold,
                     ),
@@ -131,7 +144,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.black2,
+                    color: theme.surface, // was AppColors.black2 — now theme-aware
                     borderRadius: BorderRadius.circular(16),
                     // Highlight the target stop with a yellow border
                     border: Border.all(
@@ -148,11 +161,11 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                           // Numbered circle indicator
                           CircleAvatar(
                             radius: 14,
-                            backgroundColor: AppColors.yellow,
+                            backgroundColor: AppColors.yellow, // yellow stays as brand accent
                             child: Text(
                               '${index + 1}', 
                               style: const TextStyle(
-                                color: AppColors.black, 
+                                color: AppColors.black, // black on yellow — optimal contrast always
                                 fontWeight: FontWeight.bold, 
                                 fontSize: 13,
                               ),
@@ -163,8 +176,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                           Expanded(
                             child: Text(
                               stop.name, 
-                              style: const TextStyle(
-                                color: AppColors.white, 
+                              style: TextStyle(
+                                color: theme.textPrimary, // was AppColors.white — now theme-aware
                                 fontSize: 18, 
                                 fontWeight: FontWeight.bold,
                               ),
@@ -177,7 +190,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                       Text(
                         stop.description, 
                         style: const TextStyle(
-                          color: AppColors.grey, 
+                          color: AppColors.grey, // grey stays as static accent
                           fontSize: 14, 
                           height: 1.4,
                         ),
@@ -190,7 +203,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                         const Text(
                           'Gallery', 
                           style: TextStyle(
-                            color: AppColors.yellow, 
+                            color: AppColors.yellow, // yellow stays as brand accent
                             fontSize: 12, 
                             fontWeight: FontWeight.bold,
                           ),
@@ -209,7 +222,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                 width: 220,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12), 
-                                  color: AppColors.black,
+                                  color: theme.background, // was AppColors.black — now theme-aware (image placeholder background)
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
@@ -240,7 +253,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
                                       ),
                                       // Error fallback if image fails to load
                                       errorWidget: (context, url, error) => Container(
-                                        color: AppColors.black3,
+                                        color: theme.surfaceElevated, // was AppColors.black3 — now theme-aware
                                         child: const Icon(
                                           Icons.broken_image, 
                                           color: AppColors.grey,
@@ -268,7 +281,7 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
       // Fixed bottom sheet with "Book This Tour" button
       bottomSheet: Container(
         padding: const EdgeInsets.all(16),
-        color: AppColors.black2,
+        color: theme.surface, // was AppColors.black2 — now theme-aware
         child: SizedBox(
           width: double.infinity,
           height: 50,
@@ -283,8 +296,8 @@ class _RouteDetailScreenState extends State<RouteDetailScreen> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.yellow,
-              foregroundColor: AppColors.black,
+              backgroundColor: AppColors.yellow, // yellow stays as brand accent
+              foregroundColor: AppColors.black, // black text on yellow — optimal contrast always
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

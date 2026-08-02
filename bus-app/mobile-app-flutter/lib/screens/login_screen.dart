@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import 'signup_screen.dart';
 import 'main_navigation.dart';
 
+/// Login screen allowing users to authenticate with phone number and password.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.white.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -42,8 +47,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
 
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -54,19 +62,19 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const Icon(Icons.directions_bus_rounded, color: AppColors.yellow, size: 64),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Welcome Back',
-                  style: TextStyle(color: AppColors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: theme.textPrimary, fontSize: 28, fontWeight: FontWeight.bold), // was AppColors.white — now theme-aware
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Log in to book your next ride',
-                  style: TextStyle(color: AppColors.grey, fontSize: 14),
+                  style: TextStyle(color: AppColors.grey, fontSize: 14), // grey stays as static accent
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _phoneController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   decoration: const InputDecoration(hintText: 'Phone Number'),
                   keyboardType: TextInputType.phone,
                   validator: (value) =>
@@ -75,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     hintText: 'Password',

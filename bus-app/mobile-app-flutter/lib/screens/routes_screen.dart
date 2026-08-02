@@ -3,6 +3,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
 import '../models/route_detail_model.dart';
@@ -10,6 +12,12 @@ import '../widgets/stop_image_slideshow.dart';
 import '../widgets/app_back_button.dart';
 import 'route_detail_screen.dart';
 
+/// Screen displaying all available tour routes with expandable stop lists.
+/// Each route shows a name, description, auto-playing image slideshow,
+/// and an expandable section listing all tour stops.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.black2/white.
 class RoutesScreen extends StatefulWidget {
   const RoutesScreen({super.key});
 
@@ -75,7 +83,11 @@ class _RoutesScreenState extends State<RoutesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Available Routes'),
@@ -83,7 +95,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
       body: _isLoading
           // Show loading spinner while fetching data
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.yellow),
+              child: CircularProgressIndicator(color: AppColors.yellow), // yellow stays as brand accent
             )
           : _routes.isEmpty
               // Show error state with retry button if no routes available
@@ -96,7 +108,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                         // Display error message or default empty message
                         Text(
                           _errorMessage ?? 'No routes available.', 
-                          style: const TextStyle(color: AppColors.grey), 
+                          style: const TextStyle(color: AppColors.grey), // grey stays as static accent
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
@@ -120,10 +132,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: AppColors.black2,
+                        color: theme.surface, // was AppColors.black2 — now theme-aware
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.amber.withValues(alpha: 0.3),
+                          color: AppColors.amber.withValues(alpha: 0.3), // amber stays as static accent border
                         ),
                       ),
                       // Override theme to remove divider lines in ExpansionTile
@@ -148,8 +160,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                       Expanded(
                                         child: Text(
                                           routeDetail.name, 
-                                          style: const TextStyle(
-                                            color: AppColors.white, 
+                                          style: TextStyle(
+                                            color: theme.textPrimary, // was AppColors.white — now theme-aware
                                             fontSize: 20, 
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -167,7 +179,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                     maxLines: 2, 
                                     overflow: TextOverflow.ellipsis, 
                                     style: const TextStyle(
-                                      color: AppColors.grey, 
+                                      color: AppColors.grey, // grey stays as static accent
                                       fontSize: 14,
                                     ),
                                   ),
@@ -188,13 +200,13 @@ class _RoutesScreenState extends State<RoutesScreen> {
                               title: const Text(
                                 'View Stops on this Route', 
                                 style: TextStyle(
-                                  color: AppColors.yellow, 
+                                  color: AppColors.yellow, // yellow stays as brand accent
                                   fontSize: 13, 
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              iconColor: AppColors.yellow,
-                              collapsedIconColor: AppColors.yellow,
+                              iconColor: AppColors.yellow, // yellow stays as brand accent
+                              collapsedIconColor: AppColors.yellow, // yellow stays as brand accent
                               children: routeDetail.stops.asMap().entries.map((entry) {
                                 // entry.key = index, entry.value = TourStop object
                                 final stop = entry.value;
@@ -215,11 +227,11 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                   // Numbered circle indicator for each stop
                                   leading: CircleAvatar(
                                     radius: 12,
-                                    backgroundColor: AppColors.yellow,
+                                    backgroundColor: AppColors.yellow, // yellow stays as brand accent
                                     child: Text(
                                       '${entry.key + 1}', 
                                       style: const TextStyle(
-                                        color: AppColors.black, 
+                                        color: AppColors.black, // black on yellow — optimal contrast always
                                         fontSize: 11, 
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -228,15 +240,15 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                   // Stop name
                                   title: Text(
                                     stop.name, 
-                                    style: const TextStyle(
-                                      color: AppColors.white, 
+                                    style: TextStyle(
+                                      color: theme.textPrimary, // was AppColors.white — now theme-aware
                                       fontSize: 13,
                                     ),
                                   ),
                                   // Right arrow indicator
                                   trailing: const Icon(
                                     Icons.chevron_right, 
-                                    color: AppColors.grey, 
+                                    color: AppColors.grey, // grey stays as static accent
                                     size: 18,
                                   ),
                                 );

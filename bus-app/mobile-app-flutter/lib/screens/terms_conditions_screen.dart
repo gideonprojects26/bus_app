@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_back_button.dart';
 
+/// Screen displaying the app's Terms and Conditions in a scrollable list
+/// of sections covering booking, cancellations, conduct, liability, and privacy.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// text colors instead of hardcoded AppColors.white.
 class TermsConditionsScreen extends StatelessWidget {
   const TermsConditionsScreen({super.key});
 
@@ -45,7 +52,11 @@ class TermsConditionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Terms and Conditions'),
@@ -56,7 +67,7 @@ class TermsConditionsScreen extends StatelessWidget {
           children: [
             const Text(
               'Please read these terms carefully before using our booking service.',
-              style: TextStyle(color: AppColors.grey, fontSize: 12),
+              style: TextStyle(color: AppColors.grey, fontSize: 12), // grey stays as static accent
             ),
             const SizedBox(height: 18),
             ..._sections.map((section) => Padding(
@@ -64,11 +75,23 @@ class TermsConditionsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(section['title']!,
-                          style: const TextStyle(color: AppColors.yellow, fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text(
+                        section['title']!,
+                        style: const TextStyle(
+                          color: AppColors.yellow, // yellow stays as brand accent for section titles
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text(section['body']!,
-                          style: const TextStyle(color: AppColors.white, fontSize: 13, height: 1.5)),
+                      Text(
+                        section['body']!,
+                        style: TextStyle(
+                          color: theme.textPrimary, // was AppColors.white — now theme-aware
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                      ),
                     ],
                   ),
                 )),

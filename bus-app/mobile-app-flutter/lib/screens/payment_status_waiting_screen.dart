@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../models/booking_model.dart';
 import '../providers/auth_provider.dart';
@@ -8,6 +9,12 @@ import '../providers/booking_provider.dart';
 import '../services/payment_service.dart';
 import 'receipt_screen.dart';
 
+/// Polling screen displayed while waiting for payment confirmation (e.g. USSD push).
+/// Periodically checks payment status and navigates to receipt on success,
+/// or shows an error/timeout message on failure.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// text colors instead of hardcoded AppColors.white.
 class PaymentStatusWaitingScreen extends StatefulWidget {
   final String txRef;
   final BookingDraft draft;
@@ -34,6 +41,7 @@ class _PaymentStatusWaitingScreenState extends State<PaymentStatusWaitingScreen>
   @override
   void initState() {
     super.initState();
+    // Start polling payment status every 3 seconds
     _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _checkStatus());
   }
 
@@ -43,6 +51,9 @@ class _PaymentStatusWaitingScreenState extends State<PaymentStatusWaitingScreen>
     super.dispose();
   }
 
+  /// Polls the backend for payment status. On success, creates the booking
+  /// and navigates to receipt. On failure or timeout, shows a message and
+  /// returns to the previous screen.
   Future<void> _checkStatus() async {
     _secondsElapsed += 3;
 
@@ -91,7 +102,11 @@ class _PaymentStatusWaitingScreenState extends State<PaymentStatusWaitingScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -99,17 +114,17 @@ class _PaymentStatusWaitingScreenState extends State<PaymentStatusWaitingScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 3),
+                const CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 3), // yellow stays as brand accent
                 const SizedBox(height: 28),
                 Text(
                   widget.waitingMessage,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: theme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600), // was AppColors.white — now theme-aware
                 ),
                 const SizedBox(height: 10),
                 const Text(
                   'This may take up to a minute.',
-                  style: TextStyle(color: AppColors.grey, fontSize: 12),
+                  style: TextStyle(color: AppColors.grey, fontSize: 12), // grey stays as static accent
                 ),
               ],
             ),

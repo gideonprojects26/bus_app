@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_back_button.dart';
 import '../services/notification_preferences.dart';
 
+/// Screen for managing push notification preferences (payment confirmations,
+/// receipt availability, bus arrival reminders, and promotional offers).
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded Color(0xFF1A1A1A)/AppColors.white.
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -19,6 +26,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   @override
   void initState() {
     super.initState();
+    // Load saved notification preferences from shared preferences / local storage
     _paymentConfirmations = NotificationPreferences.paymentConfirmations;
     _receiptReady = NotificationPreferences.receiptReady;
     _busArrivalReminders = NotificationPreferences.busArrivalReminders;
@@ -27,7 +35,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Notifications'),
@@ -38,7 +50,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           children: [
             const Text(
               'Choose which notifications you want to receive',
-              style: TextStyle(color: AppColors.grey, fontSize: 13),
+              style: TextStyle(color: AppColors.grey, fontSize: 13), // grey stays as static accent
             ),
             const SizedBox(height: 20),
             _buildToggle(
@@ -49,6 +61,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 setState(() => _paymentConfirmations = v);
                 NotificationPreferences.paymentConfirmations = v;
               },
+              theme: theme, // pass theme to toggle builder
             ),
             _buildToggle(
               title: 'Receipt Ready',
@@ -58,6 +71,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 setState(() => _receiptReady = v);
                 NotificationPreferences.receiptReady = v;
               },
+              theme: theme, // pass theme to toggle builder
             ),
             _buildToggle(
               title: 'Bus Arrival Reminders',
@@ -67,6 +81,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 setState(() => _busArrivalReminders = v);
                 NotificationPreferences.busArrivalReminders = v;
               },
+              theme: theme, // pass theme to toggle builder
             ),
             _buildToggle(
               title: 'Promotions and Offers',
@@ -76,6 +91,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 setState(() => _promotions = v);
                 NotificationPreferences.promotions = v;
               },
+              theme: theme, // pass theme to toggle builder
             ),
           ],
         ),
@@ -83,17 +99,20 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
   }
 
+  /// Builds a single notification toggle row with title, subtitle, and switch.
+  /// Now theme-aware — accepts ThemeProvider for surface and text colors.
   Widget _buildToggle({
     required String title,
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required ThemeProvider theme, // added for light/dark mode support
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -102,9 +121,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(
+                  title,
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13), // was AppColors.white — now theme-aware
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: AppColors.grey, fontSize: 11)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: AppColors.grey, fontSize: 11), // grey stays as static accent
+                ),
               ],
             ),
           ),

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/stop_coordinates.dart';
 import '../widgets/app_back_button.dart';
 import '../widgets/app_card_shadow.dart';
 
+/// Screen displaying an interactive Google Map with tour route stops,
+/// polylines connecting them, and a bottom timeline panel listing all stops.
+/// Supports toggling between different routes, focusing on individual stops,
+/// and expanding the map to full screen.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.black2/black3/white.
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
 
@@ -16,6 +25,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
   // Currently selected route ID (defaults to City Highlights)
   String _selectedRouteId = 'city_highlights';
   GoogleMapController? _mapController;
+
+  // Controls whether the map is in full-screen expanded mode
+  bool _isMapExpanded = false;
 
   // Camera initial view over central Kampala
   static const CameraPosition _initialPosition = CameraPosition(
@@ -112,9 +124,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final route = _selectedRoute;
-    final mapHeight = MediaQuery.of(context).size.height * 0.48;
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+    
+    // Calculate map height: full screen when expanded, ~48% otherwise
+    final screenHeight = MediaQuery.of(context).size.height;
+    final mapHeight = _isMapExpanded ? screenHeight : screenHeight * 0.48;
 
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Track Tour Route'),
@@ -125,16 +143,24 @@ class _TrackingScreenState extends State<TrackingScreen> {
           SizedBox(
             height: mapHeight,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: _isMapExpanded
+                  ? EdgeInsets.zero // No padding when full screen
+                  : const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: _isMapExpanded
+                    ? BorderRadius.zero // No rounded corners when full screen
+                    : BorderRadius.circular(20),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.amber.withValues(alpha: 0.35),
-                      width: 1.5,
-                    ),
+                    borderRadius: _isMapExpanded
+                        ? BorderRadius.zero
+                        : BorderRadius.circular(20),
+                    border: _isMapExpanded
+                        ? null // No border when full screen
+                        : Border.all(
+                            color: AppColors.amber.withValues(alpha: 0.35),
+                            width: 1.5,
+                          ),
                   ),
                   child: Stack(
                     children: [
@@ -147,6 +173,53 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         },
                         markers: _buildMarkers(route),
                         polylines: _buildPolyline(route),
+                      ),
+
+                      // EXPAND / COLLAPSE BUTTON AT TOP LEFT
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _isMapExpanded = !_isMapExpanded);
+                            // Recenter map after transition completes
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _recenterMap(route);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.black.withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.yellow),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isMapExpanded
+                                      ? Icons.close_fullscreen_rounded
+                                      : Icons.fullscreen_rounded,
+                                  color: AppColors.yellow,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _isMapExpanded ? 'Back' : 'Expand',
+                                  style: const TextStyle(
+                                    color: AppColors.yellow,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
 
                       // ROUTE TOGGLE CHIPS AT TOP RIGHT
@@ -165,7 +238,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                                   _recenterMap(r);
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? AppColors.yellow
@@ -176,7 +252,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                                   child: Text(
                                     r.name,
                                     style: TextStyle(
-                                      color: isSelected ? AppColors.black : AppColors.yellow,
+                                      color: isSelected
+                                          ? AppColors.black
+                                          : AppColors.yellow,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 11,
                                     ),
@@ -194,138 +272,142 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ),
           ),
 
-          // STOPS TIMELINE PANEL
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              decoration: const BoxDecoration(
-                color: AppColors.black3,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
+          // STOPS TIMELINE PANEL — hidden when map is expanded
+          if (!_isMapExpanded)
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                decoration: BoxDecoration(
+                  color: theme.surfaceElevated, // was AppColors.black3 — now theme-aware
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    route.name,
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      route.name,
+                      style: TextStyle(
+                        color: theme.textPrimary, // was AppColors.white — now theme-aware
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${route.stops.length} Stops · ${route.description}',
-                    style: const TextStyle(color: AppColors.grey, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${route.stops.length} Stops · ${route.description}',
+                      style: const TextStyle(
+                        color: AppColors.grey, // grey stays as static accent
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 14),
 
-                  // STOP LIST
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: route.stops.length,
-                      itemBuilder: (context, index) {
-                        final stop = route.stops[index];
-                        final isLast = index == route.stops.length - 1;
+                    // STOP LIST
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: route.stops.length,
+                        itemBuilder: (context, index) {
+                          final stop = route.stops[index];
+                          final isLast = index == route.stops.length - 1;
 
-                        return IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Step Number & Dynamically Scaling Timeline Line
-                              Column(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 12,
-                                    backgroundColor: AppColors.yellow,
-                                    child: Text(
-                                      '${index + 1}',
-                                      style: const TextStyle(
-                                        color: AppColors.black,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                          return IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Step Number & Dynamically Scaling Timeline Line
+                                Column(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor: AppColors.yellow, // yellow stays as brand accent
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(
+                                          color: AppColors.black, // black on yellow — optimal contrast always
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  if (!isLast)
-                                    Expanded(
+                                    if (!isLast)
+                                      Expanded(
+                                        child: Container(
+                                          width: 2,
+                                          color: AppColors.yellow.withValues(alpha: 0.35), // yellow stays as brand accent
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+
+                                // Interactive Stop Details Card
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: GestureDetector(
+                                      onTap: () => _focusStop(stop.location),
                                       child: Container(
-                                        width: 2,
-                                        color: AppColors.yellow.withValues(alpha: 0.35),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(width: 12),
-
-                              // Interactive Stop Details Card
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: GestureDetector(
-                                    onTap: () => _focusStop(stop.location),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.black2,
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: AppCardShadow.soft,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  stop.name,
-                                                  style: const TextStyle(
-                                                    color: AppColors.white,
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: theme.surface, // was AppColors.black2 — now theme-aware
+                                          borderRadius: BorderRadius.circular(10),
+                                          boxShadow: AppCardShadow.soft,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    stop.name,
+                                                    style: TextStyle(
+                                                      color: theme.textPrimary, // was AppColors.white — now theme-aware
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
                                                   ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  stop.subtitle,
-                                                  style: const TextStyle(
-                                                    color: AppColors.grey,
-                                                    fontSize: 11,
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    stop.subtitle,
+                                                    style: const TextStyle(
+                                                      color: AppColors.grey, // grey stays as static accent
+                                                      fontSize: 11,
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                          Text(
-                                            '${stop.latitude.toStringAsFixed(3)}, ${stop.longitude.toStringAsFixed(3)}',
-                                            style: const TextStyle(
-                                              color: AppColors.amber,
-                                              fontSize: 10,
-                                              fontFamily: 'monospace',
+                                            Text(
+                                              '${stop.latitude.toStringAsFixed(3)}, ${stop.longitude.toStringAsFixed(3)}',
+                                              style: const TextStyle(
+                                                color: AppColors.amber, // amber stays as static accent
+                                                fontSize: 10,
+                                                fontFamily: 'monospace',
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

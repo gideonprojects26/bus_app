@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
 import '../providers/booking_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/booking_model.dart';
 import '../widgets/app_pill_button.dart';
 import '../widgets/app_icon_avatar.dart';
 import 'routes_screen.dart';
 import 'receipt_screen.dart';
 
-// Converted to StatefulWidget so we can use lifecycle hooks (initState)
+/// Screen displaying user's booking activity across four tabs:
+/// Bookings, Pending, Completed, Cancelled.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded Color(0xFF1A1A1A)/AppColors.white.
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
 
@@ -31,9 +36,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return DefaultTabController(
       length: 4,
       child: Scaffold(
+        backgroundColor: theme.background, // now theme-aware
         appBar: AppBar(
           automaticallyImplyLeading: false,
           toolbarHeight: 72,
@@ -83,13 +92,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
               );
             }
 
-            // Render tab views once data is successfully fetched
+            // Render tab views once data is successfully fetched — passing theme down
             return TabBarView(
               children: [
-                _BookingList(bookings: bookingProvider.allBookings),
-                _BookingList(bookings: bookingProvider.upcoming, showCancel: true),
-                _BookingList(bookings: bookingProvider.completed),
-                _BookingList(bookings: bookingProvider.cancelled),
+                _BookingList(bookings: bookingProvider.allBookings, theme: theme),
+                _BookingList(bookings: bookingProvider.upcoming, showCancel: true, theme: theme),
+                _BookingList(bookings: bookingProvider.completed, theme: theme),
+                _BookingList(bookings: bookingProvider.cancelled, theme: theme),
               ],
             );
           },
@@ -99,11 +108,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 }
 
+/// Renders a scrollable list of booking cards or an empty state placeholder.
+/// Now theme-aware — accepts ThemeProvider for surface and text colors.
 class _BookingList extends StatelessWidget {
   final List<BookingModel> bookings;
   final bool showCancel;
+  final ThemeProvider theme; // added for light/dark mode support
 
-  const _BookingList({required this.bookings, this.showCancel = false});
+  const _BookingList({
+    required this.bookings,
+    this.showCancel = false,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -119,21 +135,44 @@ class _BookingList extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   children: [
-                    Container(height: 14, decoration: BoxDecoration(color: const Color(0xFF2A2A2A), borderRadius: BorderRadius.circular(8))),
+                    Container(
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: theme.background, // was Color(0xFF2A2A2A) — now theme-aware (skeleton placeholder uses background for contrast)
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    Container(height: 14, decoration: BoxDecoration(color: const Color(0xFF2A2A2A), borderRadius: BorderRadius.circular(8))),
+                    Container(
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: theme.background, // was Color(0xFF2A2A2A) — now theme-aware
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    Container(height: 14, width: 140, alignment: Alignment.centerLeft, decoration: BoxDecoration(color: const Color(0xFF2A2A2A), borderRadius: BorderRadius.circular(8))),
+                    Container(
+                      height: 14,
+                      width: 140,
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(
+                        color: theme.background, // was Color(0xFF2A2A2A) — now theme-aware
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('No Trips Here Yet', style: TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+              Text(
+                'No Trips Here Yet',
+                style: TextStyle(color: theme.textPrimary, fontSize: 17, fontWeight: FontWeight.w700), // was AppColors.white — now theme-aware
+              ),
               const SizedBox(height: 6),
               const Text(
                 'Your trip history will appear here.',
@@ -164,7 +203,7 @@ class _BookingList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
           ),
@@ -183,7 +222,10 @@ class _BookingList extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(draft.routeName, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(
+                          draft.routeName,
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14), // was AppColors.white — now theme-aware
+                        ),
                         Text(
                           '${draft.currency} ${draft.totalPrice.toStringAsFixed(draft.isLocal ? 0 : 2)}',
                           style: const TextStyle(color: AppColors.yellow, fontSize: 14, fontWeight: FontWeight.w700),

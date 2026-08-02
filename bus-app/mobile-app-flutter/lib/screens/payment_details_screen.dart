@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../models/booking_model.dart';
 import '../providers/booking_provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'receipt_screen.dart';
 import '../widgets/app_back_button.dart';
 import '../services/notification_service.dart';
 
+/// Screen for entering payment details (Mobile Money phone number or
+/// Credit Card information) and confirming the transaction.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// text colors instead of hardcoded AppColors.white.
 class PaymentDetailsScreen extends StatefulWidget {
   final BookingDraft draft;
   final String paymentMethod;
@@ -103,7 +109,11 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: Text(widget.paymentMethod),
@@ -118,13 +128,13 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
               children: [
                 Text(
                   'Amount to pay: ${widget.draft.currency} ${widget.draft.totalPrice.toStringAsFixed(widget.draft.isLocal ? 0 : 2)}',
-                  style: const TextStyle(color: AppColors.yellow, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: AppColors.yellow, fontSize: 16, fontWeight: FontWeight.bold), // yellow stays as brand accent
                 ),
                 const SizedBox(height: 24),
                 if (_isMobileMoney) ...[
                   TextFormField(
                     controller: _phoneController,
-                    style: const TextStyle(color: AppColors.white),
+                    style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
                       hintText: '${widget.paymentMethod} phone number',
@@ -134,14 +144,14 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                 ] else ...[
                   TextFormField(
                     controller: _cardNameController,
-                    style: const TextStyle(color: AppColors.white),
+                    style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                     decoration: const InputDecoration(hintText: 'Cardholder Name'),
                     validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _cardNumberController,
-                    style: const TextStyle(color: AppColors.white),
+                    style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(hintText: 'Card Number'),
                     validator: (v) => (v == null || v.length < 12) ? 'Enter a valid card number' : null,
@@ -152,7 +162,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _expiryController,
-                          style: const TextStyle(color: AppColors.white),
+                          style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                           decoration: const InputDecoration(hintText: 'MM/YY'),
                           validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                         ),
@@ -161,7 +171,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _cvvController,
-                          style: const TextStyle(color: AppColors.white),
+                          style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                           obscureText: true,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(hintText: 'CVV'),

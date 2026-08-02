@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_back_button.dart';
 
+/// Screen allowing users to edit their profile details (name and phone number).
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded AppColors.white.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -54,7 +59,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Edit Profile'),
@@ -71,7 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _nameController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   decoration: const InputDecoration(hintText: 'Enter your full name'),
                   validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                 ),
@@ -80,7 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _phoneController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(hintText: 'Enter your phone number'),
                   validator: (v) => (v == null || v.length < 9) ? 'Enter a valid phone number' : null,

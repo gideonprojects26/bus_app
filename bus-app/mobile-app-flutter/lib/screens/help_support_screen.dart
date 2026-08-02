@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_back_button.dart';
 
+/// Screen displaying FAQs and contact information for customer support.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors and text colors instead of hardcoded Color(0xFF1A1A1A)/AppColors.white.
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
@@ -40,7 +46,11 @@ class HelpSupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(
         leading: const AppBackButton(),
         title: const Text('Help and Support'),
@@ -49,18 +59,20 @@ class HelpSupportScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text(
+            Text(
               'Frequently Asked Questions',
-              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), // was AppColors.white — now theme-aware
             ),
             const SizedBox(height: 12),
-            ..._faqs.map((faq) => _FaqTile(question: faq['question']!, answer: faq['answer']!)),
+            // Pass theme down to each FAQ tile so they stay light/dark aware
+            ..._faqs.map((faq) => _FaqTile(question: faq['question']!, answer: faq['answer']!, theme: theme)),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Still need help?',
-              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), // was AppColors.white — now theme-aware
             ),
             const SizedBox(height: 12),
+            // Pass theme down to each contact tile
             const _ContactTile(icon: Icons.email_outlined, label: 'support@bustours.co.ug'),
             const _ContactTile(icon: Icons.phone_outlined, label: '+256 700 123 456'),
             const _ContactTile(icon: Icons.chat_bubble_outline, label: 'Live chat (available 8am - 8pm)'),
@@ -71,18 +83,21 @@ class HelpSupportScreen extends StatelessWidget {
   }
 }
 
+/// Expandable tile widget for displaying FAQ questions and answers.
+/// Now theme-aware — accepts ThemeProvider for surface and text colors.
 class _FaqTile extends StatelessWidget {
   final String question;
   final String answer;
+  final ThemeProvider theme; // added for light/dark mode support
 
-  const _FaqTile({required this.question, required this.answer});
+  const _FaqTile({required this.question, required this.answer, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
         borderRadius: BorderRadius.circular(12),
       ),
       child: Theme(
@@ -90,13 +105,19 @@ class _FaqTile extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: ExpansionTile(
-            title: Text(question, style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+            title: Text(
+              question,
+              style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600), // was AppColors.white — now theme-aware
+            ),
             iconColor: AppColors.yellow,
             collapsedIconColor: AppColors.yellow,
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Text(answer, style: const TextStyle(color: AppColors.grey, fontSize: 12, height: 1.4)),
+                child: Text(
+                  answer,
+                  style: const TextStyle(color: AppColors.grey, fontSize: 12, height: 1.4), // grey stays as static accent
+                ),
               ),
             ],
           ),
@@ -106,6 +127,8 @@ class _FaqTile extends StatelessWidget {
   }
 }
 
+/// Tile widget for displaying contact information (email, phone, chat).
+/// Now theme-aware — accepts ThemeProvider for surface and text colors.
 class _ContactTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -114,18 +137,24 @@ class _ContactTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider since _ContactTile can't receive it as a parameter (used with const in the parent)
+    final theme = context.watch<ThemeProvider>();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(icon, color: AppColors.yellow, size: 18),
           const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: AppColors.white, fontSize: 13)),
+          Text(
+            label,
+            style: TextStyle(color: theme.textPrimary, fontSize: 13), // was AppColors.white — now theme-aware
+          ),
         ],
       ),
     );

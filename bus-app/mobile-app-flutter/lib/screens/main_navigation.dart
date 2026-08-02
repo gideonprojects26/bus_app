@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'home_screen.dart';
 import 'activity_screen.dart';
 import 'profile_screen.dart';
 import '../utils/app_colors.dart';
 
+/// Root navigation shell with a custom scalloped bottom bar that
+/// cradles the center Home button in a smooth curved dip.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// surface colors instead of hardcoded AppColors.black2/black3/white.
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -22,24 +29,35 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors — passed to bottom bar
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: _ScallopBottomBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
+        theme: theme, // pass theme to bottom bar
       ),
     );
   }
 }
 
-// A bottom bar whose top edge smoothly curves inward around the
-// center button, "cradling" it in a wave-shaped dip, rather than the
-// button just floating above a flat bar edge.
+/// A bottom bar whose top edge smoothly curves inward around the
+/// center button, "cradling" it in a wave-shaped dip, rather than the
+/// button just floating above a flat bar edge.
+///
+/// Now theme-aware — accepts ThemeProvider for surface and icon colors.
 class _ScallopBottomBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final ThemeProvider theme; // added for light/dark mode support
 
-  const _ScallopBottomBar({required this.currentIndex, required this.onTap});
+  const _ScallopBottomBar({
+    required this.currentIndex,
+    required this.onTap,
+    required this.theme,
+  });
 
   static const double barHeight = 68.0;
   static const double notchRadius = 38.0;
@@ -63,7 +81,7 @@ class _ScallopBottomBar extends StatelessWidget {
             painter: _ScallopPainter(
               notchCenterX: notchCenterX,
               notchRadius: notchRadius,
-              fillColor: AppColors.black2,
+              fillColor: theme.surface, // was AppColors.black2 — now theme-aware
               borderColor: AppColors.amber.withValues(alpha: 0.25),
             ),
             child: SizedBox(
@@ -108,7 +126,8 @@ class _ScallopBottomBar extends StatelessWidget {
                 height: buttonSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: currentIndex == 1 ? AppColors.yellow : AppColors.black3,
+                  // Active Home button stays yellow; inactive uses theme-aware elevated surface
+                  color: currentIndex == 1 ? AppColors.yellow : theme.surfaceElevated, // was AppColors.black3 — now theme-aware
                   border: Border.all(
                     color: currentIndex == 1 ? AppColors.yellow : AppColors.amber.withValues(alpha: 0.4),
                     width: 2,
@@ -123,7 +142,8 @@ class _ScallopBottomBar extends StatelessWidget {
                 ),
                 child: Icon(
                   currentIndex == 1 ? Icons.home : Icons.home_outlined,
-                  color: currentIndex == 1 ? AppColors.black : AppColors.white,
+                  // Active icon stays black (contrast on yellow); inactive uses theme-aware text color
+                  color: currentIndex == 1 ? AppColors.black : theme.textPrimary, // was AppColors.white — now theme-aware
                   size: 28,
                 ),
               ),
@@ -135,9 +155,9 @@ class _ScallopBottomBar extends StatelessWidget {
   }
 }
 
-// Draws the bar's fill with a smooth wave-shaped dip cut into the top
-// edge, centered on notchCenterX, using cubic Bezier curves for a
-// soft, rounded transition rather than a sharp cutout.
+/// Draws the bar's fill with a smooth wave-shaped dip cut into the top
+/// edge, centered on notchCenterX, using cubic Bezier curves for a
+/// soft, rounded transition rather than a sharp cutout.
 class _ScallopPainter extends CustomPainter {
   final double notchCenterX;
   final double notchRadius;
@@ -211,6 +231,9 @@ class _ScallopPainter extends CustomPainter {
       oldDelegate.notchCenterX != notchCenterX || oldDelegate.notchRadius != notchRadius;
 }
 
+/// Individual tab item on the left or right side of the bottom bar.
+/// Yellow when active, grey when inactive — these accent colors don't
+/// change between light/dark themes.
 class _SideTabItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;

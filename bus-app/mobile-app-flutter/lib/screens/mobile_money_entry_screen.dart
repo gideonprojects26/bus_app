@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_back_button.dart';
 import '../models/booking_model.dart';
 import 'payment_processing_helper.dart';
 
+/// Screen for entering Mobile Money phone number to complete payment.
+///
+/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
+/// text colors instead of hardcoded AppColors.white.
 class MobileMoneyEntryScreen extends StatefulWidget {
   final BookingDraft draft;
 
@@ -34,7 +40,11 @@ class _MobileMoneyEntryScreenState extends State<MobileMoneyEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Access theme provider for light/dark mode aware colors
+    final theme = context.watch<ThemeProvider>();
+
     return Scaffold(
+      backgroundColor: theme.background, // now theme-aware
       appBar: AppBar(leading: const AppBackButton(), title: const Text('Mobile Money')),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -46,12 +56,12 @@ class _MobileMoneyEntryScreenState extends State<MobileMoneyEntryScreen> {
               children: [
                 const Text(
                   'Enter the phone number registered for Mobile Money. We\u2019ll detect your network automatically.',
-                  style: TextStyle(color: AppColors.grey, fontSize: 13),
+                  style: TextStyle(color: AppColors.grey, fontSize: 13), // grey stays as static accent
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _phoneController,
-                  style: const TextStyle(color: AppColors.white),
+                  style: TextStyle(color: theme.textPrimary), // was AppColors.white — now theme-aware
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(hintText: '07XXXXXXXX'),
                   validator: (v) => (v == null || v.length < 9) ? 'Enter a valid phone number' : null,
