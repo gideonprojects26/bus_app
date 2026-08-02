@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+// ignore: unused_import
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -54,7 +55,7 @@ class ReceiptPdfService {
                 pw.Center(
                   child: pw.Text(
                     'Booking Receipt',
-                    style: const pw.TextStyle(
+                    style: pw.TextStyle(
                       fontSize: 16,
                       color: PdfColors.grey,
                     ),
@@ -77,7 +78,7 @@ class ReceiptPdfService {
                     ),
                     child: pw.Text(
                       'CONFIRMED',
-                      style: const pw.TextStyle(
+                      style: pw.TextStyle(
                         color: PdfColors.white,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -110,7 +111,7 @@ class ReceiptPdfService {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    const pw.Text(
+                    pw.Text(
                       'Total Paid',
                       style: pw.TextStyle(
                         fontSize: 16,
@@ -133,7 +134,7 @@ class ReceiptPdfService {
                 pw.Center(
                   child: pw.Text(
                     'Thank you for choosing Bus Tours Uganda!',
-                    style: const pw.TextStyle(
+                    style: pw.TextStyle(
                       fontSize: 12,
                       color: PdfColors.grey,
                     ),
@@ -142,7 +143,7 @@ class ReceiptPdfService {
                 pw.Center(
                   child: pw.Text(
                     'For inquiries: support@bustours.co.ug | +256 700 123 456',
-                    style: const pw.TextStyle(
+                    style: pw.TextStyle(
                       fontSize: 10,
                       color: PdfColors.grey,
                     ),
@@ -167,14 +168,14 @@ class ReceiptPdfService {
         children: [
           pw.Text(
             label,
-            style: const pw.TextStyle(
+            style: pw.TextStyle(
               fontSize: 12,
               color: PdfColors.grey,
             ),
           ),
           pw.Text(
             value,
-            style: const pw.TextStyle(
+            style: pw.TextStyle(
               fontSize: 12,
               fontWeight: pw.FontWeight.bold,
             ),
