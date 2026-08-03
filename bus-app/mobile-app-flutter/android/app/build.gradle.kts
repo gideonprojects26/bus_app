@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bus_app"
+    namespace = "com.promotesafaris.hopoffhoponbus"
     compileSdk = 36  // ← CHANGED: 34 → 36 (required by google_maps, shared_preferences, sqflite, webview, etc.)
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.bus_app"
+        applicationId = "com.promotesafaris.hopoffhoponbus"
         minSdk = flutter.minSdkVersion
         targetSdk = 36  // ← CHANGED: 34 → 36 (matches compileSdk)
         versionCode = flutter.versionCode

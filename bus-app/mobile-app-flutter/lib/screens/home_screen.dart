@@ -229,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'The Pearl of Africa',
+                                  'Hop Off Hop On Tours',
                                   style: TextStyle(color: AppColors.white, fontSize: 22, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 4),
