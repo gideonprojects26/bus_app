@@ -29,7 +29,9 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'HopOn HopOff',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.theme,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
         home: const AuthGate(),
       ),
     );
