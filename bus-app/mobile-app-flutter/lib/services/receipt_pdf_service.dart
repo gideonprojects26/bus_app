@@ -1,14 +1,12 @@
 // ignore_for_file: duplicate_ignore, prefer_const_constructors
 
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 // ignore: unused_import
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:qr/qr.dart';
 import '../models/booking_model.dart';
 
 class ReceiptPdfService {
@@ -28,75 +26,12 @@ class ReceiptPdfService {
     );
   }
 
-  /// Generates QR code image bytes by painting the QR matrix onto a BMP.
-  static Uint8List _generateQrCodeBytes(String data) {
-    final qrCode = QrCode.fromData(
-      data: data,
-      errorCorrectLevel: QrErrorCorrectLevel.M,
-    );
-
-    final moduleCount = qrCode.moduleCount;
-    const scale = 4;
-    final size = moduleCount * scale;
-    final rowBytes = (size * 3 + 3) ~/ 4 * 4;
-    final pixelDataSize = rowBytes * size;
-
-    final bmpData = Uint8List(54 + pixelDataSize);
-    final bmpView = ByteData.view(bmpData.buffer);
-
-    // BMP Header
-    bmpData[0] = 0x42;
-    bmpData[1] = 0x4D;
-    bmpView.setUint32(2, bmpData.length, Endian.little);
-    bmpView.setUint32(10, 54, Endian.little);
-    bmpView.setUint32(14, 40, Endian.little);
-    bmpView.setInt32(18, size, Endian.little);
-    bmpView.setInt32(22, -size, Endian.little);
-    bmpView.setUint16(26, 1, Endian.little);
-    bmpView.setUint16(28, 24, Endian.little);
-    bmpView.setUint32(30, 0, Endian.little);
-    bmpView.setUint32(34, pixelDataSize, Endian.little);
-    bmpView.setInt32(38, 2835, Endian.little);
-    bmpView.setInt32(42, 2835, Endian.little);
-
-    for (int row = 0; row < moduleCount; row++) {
-      for (int col = 0; col < moduleCount; col++) {
-        final dark = (qrCode as dynamic).isDark(row, col) as bool;
-        
-        for (int y = 0; y < scale; y++) {
-          for (int x = 0; x < scale; x++) {
-            final px = col * scale + x;
-            final py = row * scale + y;
-            final offset = 54 + py * rowBytes + px * 3;
-            
-            if (dark) {
-              bmpData[offset] = 0;
-              bmpData[offset + 1] = 0;
-              bmpData[offset + 2] = 0;
-            } else {
-              bmpData[offset] = 255;
-              bmpData[offset + 1] = 255;
-              bmpData[offset + 2] = 255;
-            }
-          }
-        }
-      }
-    }
-
-    return bmpData;
-  }
-
-  /// Builds the PDF document with booking details and an embedded QR code.
+  /// Builds the PDF document with booking details.
   /// All text is uppercase except "Booking Receipt" subtitle.
-  /// Total price section removed.
+  /// QR code is available on the in-app screen receipt.
   static Future<pw.Document> _generatePdf(BookingModel booking) async {
     final pdf = pw.Document();
     final draft = booking.draft;
-
-    final qrData =
-        'BookingID:${booking.id}|Route:${draft.routeName}|Stop:${draft.pickupStop}|Date:${draft.date}|Passengers:${draft.passengers}';
-
-    final qrImageBytes = _generateQrCodeBytes(qrData);
 
     pdf.addPage(
       pw.Page(
@@ -118,7 +53,6 @@ class ReceiptPdfService {
                     ),
                   ),
                 ),
-                // Only "Booking Receipt" keeps normal casing
                 pw.Center(
                   child: pw.Text(
                     'Booking Receipt',
@@ -154,34 +88,7 @@ class ReceiptPdfService {
                 ),
                 pw.SizedBox(height: 24),
 
-                // --- QR Code ---
-                pw.Center(
-                  child: pw.Container(
-                    padding: const pw.EdgeInsets.all(8),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.white,
-                      border: pw.Border.all(color: PdfColors.grey, width: 1),
-                    ),
-                    child: pw.Image(
-                      pw.MemoryImage(qrImageBytes),
-                      width: 130,
-                      height: 130,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 6),
-                pw.Center(
-                  child: pw.Text(
-                    'SCAN TO VERIFY BOOKING',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      color: PdfColors.grey,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 18),
-
-                // --- Booking Details (all uppercase) ---
+                // --- Booking Details ---
                 _buildPdfRow('BOOKING ID', booking.id.toUpperCase()),
                 _buildPdfRow('TOUR', draft.routeName.toUpperCase()),
                 _buildPdfRow('PICKUP STOP', draft.pickupStop.toUpperCase()),
@@ -197,14 +104,12 @@ class ReceiptPdfService {
                 ),
                 _buildPdfRow('PAYMENT METHOD', booking.paymentMethod.toUpperCase()),
                 
-                pw.SizedBox(height: 20),
-                pw.Divider(),
-                pw.SizedBox(height: 16),
+                pw.SizedBox(height: 30),
 
                 // --- Footer ---
                 pw.Center(
                   child: pw.Text(
-                    'ENJOY YOUR HOP OFF HOP ON TOUR!',
+                    'THANK YOU FOR CHOOSING BUS TOURS UGANDA!',
                     style: pw.TextStyle(
                       fontSize: 12,
                       color: PdfColors.grey,
