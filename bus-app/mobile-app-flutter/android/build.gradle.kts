@@ -1,11 +1,11 @@
 buildscript {
-    ext.kotlin_version = '1.9.0'
+    extra["kotlin_version"] = "1.9.0"
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath("com.android.tools.build:gradle:8.1.0")
     }
 }
 
@@ -26,6 +26,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
