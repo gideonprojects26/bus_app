@@ -45,7 +45,7 @@ class ReceiptPdfService {
                 // --- Header ---
                 pw.Center(
                   child: pw.Text(
-                    'BUS TOURS UGANDA',
+                    'HOP OFF HOP ON KAMPALA BUS',
                     style: pw.TextStyle(
                       fontSize: 24,
                       fontWeight: pw.FontWeight.bold,
@@ -109,7 +109,7 @@ class ReceiptPdfService {
                 // --- Footer ---
                 pw.Center(
                   child: pw.Text(
-                    'THANK YOU FOR CHOOSING BUS TOURS UGANDA!',
+                    'THANK YOU FOR CHOOSING HOP OFF HOP ON KAMAPALA BUS',
                     style: pw.TextStyle(
                       fontSize: 12,
                       color: PdfColors.grey,
