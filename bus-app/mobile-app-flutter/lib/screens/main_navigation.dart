@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // For HapticFeedback
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import 'home_screen.dart';
@@ -6,11 +7,8 @@ import 'activity_screen.dart';
 import 'profile_screen.dart';
 import '../utils/app_colors.dart';
 
-/// Root navigation shell with a custom scalloped bottom bar that
-/// cradles the center Home button in a smooth curved dip.
-///
-/// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
-/// surface colors instead of hardcoded AppColors.black2/black3/white.
+/// Root navigation shell with an Expanding Chip bottom bar.
+/// Each tab expands horizontally when active — premium fintech/web3 feel.
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -29,125 +27,82 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    // Access theme provider for light/dark mode aware colors — passed to bottom bar
     final theme = context.watch<ThemeProvider>();
 
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: _ScallopBottomBar(
+      bottomNavigationBar: _ExpandingChipBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        theme: theme, // pass theme to bottom bar
+        theme: theme,
       ),
     );
   }
 }
 
-/// A bottom bar whose top edge smoothly curves inward around the
-/// center button, "cradling" it in a wave-shaped dip, rather than the
-/// button just floating above a flat bar edge.
-///
-/// Now theme-aware — accepts ThemeProvider for surface and icon colors.
-class _ScallopBottomBar extends StatelessWidget {
+/// Expanding Chip bottom bar — each tab is a pill that expands sideways
+/// when active, showing an icon + label. Inactive tabs show only the icon.
+class _ExpandingChipBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
-  final ThemeProvider theme; // added for light/dark mode support
+  final ThemeProvider theme;
 
-  const _ScallopBottomBar({
+  const _ExpandingChipBar({
     required this.currentIndex,
     required this.onTap,
     required this.theme,
   });
 
-  static const double barHeight = 68.0;
-  static const double notchRadius = 38.0;
-  static const double buttonSize = 64.0;
+  static const double barHeight = 72.0;
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final notchCenterX = screenWidth / 2;
-
-    return SizedBox(
+    return Container(
       height: barHeight + 24,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.bottomCenter,
-        children: [
-          // The curved bar shape itself, drawn with a smooth dip cut
-          // into its top edge around the center button's position.
-          CustomPaint(
-            size: Size(screenWidth, barHeight),
-            painter: _ScallopPainter(
-              notchCenterX: notchCenterX,
-              notchRadius: notchRadius,
-              fillColor: theme.surface, // was AppColors.black2 — now theme-aware
-              borderColor: AppColors.amber.withValues(alpha: 0.25),
-            ),
-            child: SizedBox(
-              height: barHeight,
-              width: screenWidth,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 14),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _SideTabItem(
-                        icon: Icons.receipt_long_outlined,
-                        activeIcon: Icons.receipt_long,
-                        label: 'Activity',
-                        isActive: currentIndex == 0,
-                        onTap: () => onTap(0),
-                      ),
-                    ),
-                    const SizedBox(width: notchRadius * 2),
-                    Expanded(
-                      child: _SideTabItem(
-                        icon: Icons.person_outline,
-                        activeIcon: Icons.person,
-                        label: 'Profile',
-                        isActive: currentIndex == 2,
-                        onTap: () => onTap(2),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.surface, // Maps to darkSurface or lightSurface
+        borderRadius: BorderRadius.circular(40),
+        border: Border.all(
+          color: AppColors.amber.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
-
-          // The raised circular Home button, sitting inside the dip.
-          Positioned(
-            bottom: barHeight - (buttonSize / 2) - 10,
-            child: GestureDetector(
-              onTap: () => onTap(1),
-              child: Container(
-                width: buttonSize,
-                height: buttonSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  // Active Home button stays yellow; inactive uses theme-aware elevated surface
-                  color: currentIndex == 1 ? AppColors.yellow : theme.surfaceElevated, // was AppColors.black3 — now theme-aware
-                  border: Border.all(
-                    color: currentIndex == 1 ? AppColors.yellow : AppColors.amber.withValues(alpha: 0.4),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (currentIndex == 1 ? AppColors.yellow : Colors.black).withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  currentIndex == 1 ? Icons.home : Icons.home_outlined,
-                  // Active icon stays black (contrast on yellow); inactive uses theme-aware text color
-                  color: currentIndex == 1 ? AppColors.black : theme.textPrimary, // was AppColors.white — now theme-aware
-                  size: 28,
-                ),
-              ),
-            ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ExpandingChip(
+            icon: Icons.receipt_long_outlined,
+            activeIcon: Icons.receipt_long,
+            label: 'Activity',
+            isActive: currentIndex == 0,
+            onTap: () => onTap(0),
+            theme: theme,
+          ),
+          _ExpandingChip(
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home,
+            label: 'Home',
+            isActive: currentIndex == 1,
+            onTap: () => onTap(1),
+            theme: theme,
+            isCenter: true,
+          ),
+          _ExpandingChip(
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
+            label: 'Profile',
+            isActive: currentIndex == 2,
+            onTap: () => onTap(2),
+            theme: theme,
           ),
         ],
       ),
@@ -155,114 +110,105 @@ class _ScallopBottomBar extends StatelessWidget {
   }
 }
 
-/// Draws the bar's fill with a smooth wave-shaped dip cut into the top
-/// edge, centered on notchCenterX, using cubic Bezier curves for a
-/// soft, rounded transition rather than a sharp cutout.
-class _ScallopPainter extends CustomPainter {
-  final double notchCenterX;
-  final double notchRadius;
-  final Color fillColor;
-  final Color borderColor;
-
-  _ScallopPainter({
-    required this.notchCenterX,
-    required this.notchRadius,
-    required this.fillColor,
-    required this.borderColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path();
-    final dipWidth = notchRadius * 2.6;
-    final dipDepth = notchRadius * 0.95;
-
-    final leftCurveStart = notchCenterX - dipWidth;
-    final rightCurveEnd = notchCenterX + dipWidth;
-
-    path.moveTo(0, 0);
-    path.lineTo(leftCurveStart, 0);
-
-    // Curve down into the dip
-    path.cubicTo(
-      leftCurveStart + dipWidth * 0.35, 0,
-      notchCenterX - notchRadius * 1.15, dipDepth,
-      notchCenterX, dipDepth,
-    );
-    // Curve back up out of the dip
-    path.cubicTo(
-      notchCenterX + notchRadius * 1.15, dipDepth,
-      rightCurveEnd - dipWidth * 0.35, 0,
-      rightCurveEnd, 0,
-    );
-
-    path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    final fillPaint = Paint()..color = fillColor;
-    canvas.drawPath(path, fillPaint);
-
-    final borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    final borderPath = Path();
-    borderPath.moveTo(0, 0);
-    borderPath.lineTo(leftCurveStart, 0);
-    borderPath.cubicTo(
-      leftCurveStart + dipWidth * 0.35, 0,
-      notchCenterX - notchRadius * 1.15, dipDepth,
-      notchCenterX, dipDepth,
-    );
-    borderPath.cubicTo(
-      notchCenterX + notchRadius * 1.15, dipDepth,
-      rightCurveEnd - dipWidth * 0.35, 0,
-      rightCurveEnd, 0,
-    );
-    borderPath.lineTo(size.width, 0);
-    canvas.drawPath(borderPath, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ScallopPainter oldDelegate) =>
-      oldDelegate.notchCenterX != notchCenterX || oldDelegate.notchRadius != notchRadius;
-}
-
-/// Individual tab item on the left or right side of the bottom bar.
-/// Yellow when active, grey when inactive — these accent colors don't
-/// change between light/dark themes.
-class _SideTabItem extends StatelessWidget {
+/// Individual expanding chip — animates width and shows label when active.
+class _ExpandingChip extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final ThemeProvider theme;
+  final bool isCenter;
 
-  const _SideTabItem({
+  const _ExpandingChip({
     required this.icon,
     required this.activeIcon,
     required this.label,
     required this.isActive,
     required this.onTap,
+    required this.theme,
+    this.isCenter = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? AppColors.yellow : AppColors.grey;
+    // Colors based on active state
+    // Brand accent colors (yellow/amber) don't change with theme
+    final bgColor = isActive 
+        ? (isCenter ? AppColors.yellow : AppColors.amber) 
+        : Colors.transparent;
+    
+    // Active icon/text colors contrast with the brand accent backgrounds
+    final iconColor = isActive 
+        ? (isCenter ? AppColors.darkTextPrimary : AppColors.darkTextPrimary) 
+        : theme.textPrimary; // Inactive tabs use theme-aware text color
+    
+    final labelColor = isActive 
+        ? (isCenter ? AppColors.darkTextPrimary : AppColors.darkTextPrimary) 
+        : theme.textPrimary; // Inactive tabs use theme-aware text color
+    
+    // Inactive border uses theme-aware surface color for subtle contrast
+    final inactiveBorderColor = theme.surfaceElevated.withValues(alpha: 0.5);
 
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(isActive ? activeIcon : icon, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-        ],
+      onTap: () {
+        // Haptic feedback for premium feel
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 20 : 12,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: (isCenter ? AppColors.yellow : AppColors.amber)
+                        .withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
+          border: isActive
+              ? null
+              : Border.all(
+                  color: inactiveBorderColor,
+                  width: 1.5,
+                ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              color: iconColor,
+              size: 24,
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 10),
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: isActive ? 1.0 : 0.0,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: labelColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
