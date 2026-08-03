@@ -3,22 +3,44 @@ const { v4: uuidv4 } = require('uuid');
 const { decideProvider } = require('../services/providerRouter');
 const pesapalService = require('../services/pesapalService');
 const momoService = require('../services/momoService');
+// NEW: Import validationResult to check for errors collected by the route middleware
+// This replaces the manual "if (!field) return 400" checks with standardized validation
+const { validationResult } = require('express-validator');
 
 const initiatePayment = async (req, res) => {
   try {
+    // NEW: Check if express-validator found any errors from the route rules
+    // This runs BEFORE any database queries, saving resources on bad requests
+    // The rules (routeId not empty, paymentMethodChosen in ['card','mobile_money'], etc.)
+    // are defined in paymentRoutes.js and checked here
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
     const {
       routeId, pickupStop, bookingDate, bookingTime,
       seatCount, isLocal, paymentMethodChosen, phoneNumber, email,
     } = req.body;
 
-    if (!routeId || !pickupStop || !bookingDate || !bookingTime || !paymentMethodChosen) {
-      return res.status(400).json({ message: 'Missing required booking fields.' });
+    // NOTE: The manual checks below are now redundant because express-validator
+    // handles routeId, pickupStop, paymentMethodChosen, and seatCount in the route.
+    // We keep them as a safety net and for fields NOT covered by the route validator
+    // (bookingDate, bookingTime, phoneNumber conditional check).
+
+    // These fields are NOT validated in the route middleware, so we keep manual checks
+    if (!bookingDate || !bookingTime) {
+      return res.status(400).json({ message: 'Booking date and time are required.' });
     }
 
+    // phoneNumber is conditionally required for mobile_money — not easy to express
+    // in express-validator rules, so we keep this manual check
     if (paymentMethodChosen === 'mobile_money' && !phoneNumber) {
       return res.status(400).json({ message: 'Phone number is required for Mobile Money.' });
     }
 
+    // routeId is now validated by express-validator, but we still need to
+    // check if the route actually EXISTS in the database (validator only checks presence)
     const route = await Route.findByPk(routeId);
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' });
@@ -143,6 +165,9 @@ const initiatePayment = async (req, res) => {
     res.status(500).json({ message: 'Server error initiating payment.' });
   }
 };
+
+// getPaymentStatus, pesapalWebhook, and pesapalCallback remain UNCHANGED
+// — they don't need body validation since they use URL params or are webhooks
 
 const getPaymentStatus = async (req, res) => {
   try {

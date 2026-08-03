@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../services/permission_service.dart';
 
 // Splash sequence (total 5600ms, matching the requested ~5.6s):
 //   0ms   - 2000ms: hero bus photo holds still, untouched (2 full seconds)
@@ -37,6 +38,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+        // Ask for core permissions early, once, rather than scattering
+    // prompts across individual features later.
+    PermissionService.requestInitialPermissions();
     _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: _totalMs));
 
     _irisRadius = Tween<double>(begin: 1.0, end: 0.0).animate(_interval(2000, 2600));

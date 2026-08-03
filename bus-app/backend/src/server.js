@@ -14,7 +14,38 @@ const trackingWebhookRoutes = require('./routes/trackingWebhookRoutes');
 
 const app = express();
 
-app.use(cors());
+// -------------------------------------------------------------
+// CORS LOCKDOWN — Restrict browser-based access to your API
+// -------------------------------------------------------------
+// Only these origins are allowed to call your API from a browser.
+// Mobile apps (Flutter) and server-to-server calls don't send an
+// Origin header, so they pass through unaffected via the !origin check.
+const allowedOrigins = [
+  'https://ksb-admin-dashboard.onrender.com',
+  // Add your Flutter web build origin here if you ever deploy a web version:
+  // 'https://your-flutter-web-app.web.app',
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // CASE 1: No origin header → Mobile apps, curl, Postman, server-to-server
+    // These are trusted clients — allow them through
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // CASE 2: Origin is in our whitelist → Admin dashboard, trusted websites
+    // Explicitly allowed to make browser-based API calls
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // CASE 3: Unknown origin → Some random website trying to call your API
+    // Block it to prevent unauthorized browser-based access
+    callback(new Error('Not allowed by CORS'));
+  },
+}));
+
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {
