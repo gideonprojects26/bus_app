@@ -1,5 +1,7 @@
-package com.example.bus_app
+package com.promotesafaris.hopoffhoponbus
 
 import io.flutter.embedding.android.FlutterActivity
 
-class MainActivity : FlutterActivity()
+class MainActivity : FlutterActivity(){
+    
+}
