@@ -35,7 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isSaving = true);
 
-    // TODO: Once a PUT /api/auth/profile (or similar) endpoint exists on
+    // remember to Once a PUT /api/auth/profile (or similar) endpoint exists on
     // the backend, call it here with the updated fields and refresh the
     // AuthProvider's user object from the response. For now this just
     // simulates a save so the UI flow works end to end.

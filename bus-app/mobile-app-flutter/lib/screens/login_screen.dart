@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
+import '../services/notification_service.dart';
 import 'signup_screen.dart';
 import 'main_navigation.dart';
 
@@ -32,7 +33,12 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text,
     );
 
-    if (success && mounted) {
+        if (success && mounted) {
+      final user = authProvider.user;
+      final firstName = user?.fullName.split(' ').first ?? 'Rider';
+      await NotificationService.showWelcomeBack(name: firstName);
+
+      if (!mounted) return; // Guard — context may be invalid after await
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigation()),

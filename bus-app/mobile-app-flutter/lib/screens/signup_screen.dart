@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
+import '../services/notification_service.dart';
 import 'main_navigation.dart';
 import 'terms_conditions_screen.dart';
 import 'package:flutter/gestures.dart';
@@ -47,7 +48,11 @@ class _SignupScreenState extends State<SignupScreen> {
       password: _passwordController.text,
     );
 
-    if (success && mounted) {
+        if (success && mounted) {
+      final firstName = _nameController.text.trim().split(' ').first;
+      await NotificationService.showWelcome(name: firstName);
+
+      if (!mounted) return; // Guard — context may be invalid after await
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigation()),
