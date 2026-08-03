@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -30,6 +31,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadRoutesAndStops();
+  }
+
+  /// Extracts initials from the user's full name for the profile avatar.
+  /// - Single name ("John") → first letter ("J")
+  /// - Two or more names ("John Doe") → first letter of first two names ("JD")
+  /// - Fallback ("Rider") → "R"
+  String _getInitials(String fullName) {
+    final parts = fullName.trim().split(' ');
+    if (parts.length >= 2) {
+      // Take first character of the first two name parts
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    // Single name — just the first character
+    return fullName.isNotEmpty ? fullName[0].toUpperCase() : 'R';
   }
 
   Future<void> _loadRoutesAndStops() async {
@@ -91,10 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final theme = context.watch<ThemeProvider>();
     final firstName = authProvider.user?.fullName.split(' ').first ?? 'Rider';
+    // Get the user's initials for the profile avatar
+    final userInitials = _getInitials(authProvider.user?.fullName ?? 'Rider');
 
     return Scaffold(
       backgroundColor: theme.background,
-      // Smaller FAB — compact with just the icon
       floatingActionButton: FloatingActionButton.small(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingScreen())),
         backgroundColor: AppColors.yellow,
@@ -130,6 +146,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
+                    // Profile avatar — shows user initials instead of a generic person icon.
+                    // Tapping navigates to the ProfileScreen.
                     GestureDetector(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
                       child: Container(
@@ -140,7 +158,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
                         ),
-                        child: const Icon(Icons.person_outline, color: AppColors.yellow),
+                        // Center the initials text inside the avatar container
+                        alignment: Alignment.center,
+                        child: Text(
+                          userInitials,
+                          style: const TextStyle(
+                            color: AppColors.yellow,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -220,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.map_rounded,
-                        label: 'Live Location',
+                        label: 'Our Buses Live Location',
                         theme: theme,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
                       ),
@@ -420,25 +447,21 @@ class _StopCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // CachedNetworkImage — loads instantly from cache after first download
               stop.primaryImage != null
-                  ? Image.network(
-                      stop.primaryImage!,
+                  ? CachedNetworkImage(
+                      imageUrl: stop.primaryImage!,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: theme.surfaceElevated,
-                          child: const Center(
-                            child: CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 2),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: theme.surfaceElevated,
-                          child: const Icon(Icons.image, color: AppColors.grey, size: 40),
-                        );
-                      },
+                      placeholder: (context, url) => Container(
+                        color: theme.surfaceElevated,
+                        child: const Center(
+                          child: CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: theme.surfaceElevated,
+                        child: const Icon(Icons.image, color: AppColors.grey, size: 40),
+                      ),
                     )
                   : Container(
                       color: theme.surfaceElevated,

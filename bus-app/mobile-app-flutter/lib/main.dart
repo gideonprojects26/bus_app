@@ -26,13 +26,20 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadSavedPreference()),
       ],
-      child: MaterialApp(
-        title: 'HopOn HopOff',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const AuthGate(),
+      // Consumer<ThemeProvider> listens for theme changes and rebuilds
+      // the MaterialApp with the correct theme when the user toggles.
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'HopOn HopOff',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            // Uses ThemeProvider's state instead of system setting
+            themeMode: themeProvider.isLightMode ? ThemeMode.light : ThemeMode.dark,
+            home: const AuthGate(),
+          );
+        },
       ),
     );
   }
