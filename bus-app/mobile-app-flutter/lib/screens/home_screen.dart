@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-// ignore: unused_import
-import 'dart:math';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
@@ -25,7 +23,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Mixed list of stops from all routes (max 7 for display)
   List<_StopWithRoute> _popularStops = [];
   bool _isLoadingStops = true;
 
@@ -35,9 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadRoutesAndStops();
   }
 
-  /// Fetches all routes from the backend, then builds a mixed list of stops
-  /// by taking evenly from each route (round-robin) so popular stops section
-  /// shows variety instead of just the first route's stops.
   Future<void> _loadRoutesAndStops() async {
     try {
       final response = await http.get(Uri.parse('${AppConstants.baseUrl}/routes'));
@@ -46,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
         final List<dynamic> data = json.decode(response.body);
         final routes = data.map((j) => RouteDetail.fromJson(j)).toList();
 
-        // Group stops with images by their parent route
         final List<List<_StopWithRoute>> stopsByRoute = [];
         for (final route in routes) {
           final routeStops = <_StopWithRoute>[];
@@ -60,13 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
 
-        // Round-robin: take one stop from each route, then repeat
-        // This ensures stops are mixed from all routes evenly
         final List<_StopWithRoute> mixedStops = [];
         if (stopsByRoute.isNotEmpty) {
-          int maxPerRoute = 7; // Safety limit per route
-          // ignore: unused_local_variable
-          int routeIndex = 0;
+          int maxPerRoute = 7;
           List<int> takenCounts = List.filled(stopsByRoute.length, 0);
 
           while (mixedStops.length < 7) {
@@ -79,7 +68,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 addedAny = true;
               }
             }
-            // If no more stops can be added from any route, exit
             if (!addedAny) break;
           }
         }
@@ -106,12 +94,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: theme.background,
-      floatingActionButton: FloatingActionButton.extended(
+      // Smaller FAB — compact with just the icon
+      floatingActionButton: FloatingActionButton.small(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingScreen())),
         backgroundColor: AppColors.yellow,
-        icon: const Icon(Icons.add_rounded, color: AppColors.black),
         elevation: 2,
-        label: const Text('New Booking', style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w700)),
+        child: const Icon(Icons.add_rounded, color: AppColors.black),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -262,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // ---------- POPULAR STOPS ----------
               _SectionHeader(title: 'Popular Stops', theme: theme),
               SizedBox(
-                height: 240, // Increased from 210 to fit larger cards
+                height: 240,
                 child: _isLoadingStops
                     ? const Center(child: CircularProgressIndicator(color: AppColors.yellow))
                     : _popularStops.isEmpty
@@ -348,19 +336,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// Simple data class to bundle a TourStop with its parent RouteDetail
-/// so we can navigate to the correct route when a stop is tapped.
 class _StopWithRoute {
   final TourStop stop;
   final RouteDetail parentRoute;
-
   const _StopWithRoute({required this.stop, required this.parentRoute});
 }
 
 class _SectionHeader extends StatelessWidget {
   final String title;
   final ThemeProvider theme;
-
   const _SectionHeader({required this.title, required this.theme});
 
   @override
@@ -372,13 +356,11 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// Circular quick-action button with an icon above a label.
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final ThemeProvider theme;
   final VoidCallback onTap;
-
   const _QuickAction({required this.icon, required this.label, required this.theme, required this.onTap});
 
   @override
@@ -405,14 +387,10 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-/// Horizontal card displaying a popular stop — image fills the entire card
-/// with the stop name overlaid as a caption at the bottom.
-/// Tapping navigates to the RouteDetailScreen scrolled to this stop.
 class _StopCard extends StatelessWidget {
   final TourStop stop;
   final RouteDetail parentRoute;
   final ThemeProvider theme;
-
   const _StopCard({required this.stop, required this.parentRoute, required this.theme});
 
   @override
@@ -430,8 +408,8 @@ class _StopCard extends StatelessWidget {
         );
       },
       child: Container(
-        width: 240, // Increased from 220
-        height: 200, // Full card height — image fills it all
+        width: 240,
+        height: 200,
         margin: const EdgeInsets.only(right: 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
@@ -442,7 +420,6 @@ class _StopCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Image fills the entire card
               stop.primaryImage != null
                   ? Image.network(
                       stop.primaryImage!,
@@ -467,8 +444,6 @@ class _StopCard extends StatelessWidget {
                       color: theme.surfaceElevated,
                       child: const Icon(Icons.image, color: AppColors.grey, size: 40),
                     ),
-
-              // Stop name caption at the bottom — clean, no dark overlay
               Positioned(
                 bottom: 0,
                 left: 0,
