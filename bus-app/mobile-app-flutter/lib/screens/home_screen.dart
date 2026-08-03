@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.map_rounded,
-                        label: 'Our Buses Live Location',
+                        label: 'Bus Live Location',
                         theme: theme,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
                       ),
