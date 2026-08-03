@@ -20,10 +20,12 @@ class ReceiptPdfService {
     await file.writeAsBytes(await pdf.save());
 
     // Open share sheet — user can save, print, email, etc.
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Bus Tours Receipt - ${booking.draft.routeName}',
-    );
+    await SharePlus.instance.share(
+  ShareParams(
+    files: [XFile(file.path)],
+    text: 'Bus Tours Receipt - ${booking.draft.routeName}',
+  ),
+);
   }
 
   /// Builds the PDF document with booking details styled as a receipt.
