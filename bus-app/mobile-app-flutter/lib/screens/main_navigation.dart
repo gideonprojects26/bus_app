@@ -9,6 +9,7 @@ import '../utils/app_colors.dart';
 
 /// Root navigation shell with an Expanding Chip bottom bar.
 /// Each tab expands horizontally when active — premium fintech/web3 feel.
+/// Bar has a transparent background so screen content shows through behind it.
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -31,6 +32,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
     return Scaffold(
       body: _screens[_currentIndex],
+      // Use extendBody so the screen content flows behind the bar
+      extendBody: true,
       bottomNavigationBar: _ExpandingChipBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -42,6 +45,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
 /// Expanding Chip bottom bar — each tab is a pill that expands sideways
 /// when active, showing an icon + label. Inactive tabs show only the icon.
+/// The bar itself is the ONLY visible element — the background is transparent.
 class _ExpandingChipBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -53,17 +57,18 @@ class _ExpandingChipBar extends StatelessWidget {
     required this.theme,
   });
 
-  static const double barHeight = 72.0;
+  // Reduced from 72 to 58 for a smaller overall bar
+  static const double barHeight = 58.0;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: barHeight + 24,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: barHeight + 16, // Reduced from +24 to +16
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced padding
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.surface, // Maps to darkSurface or lightSurface
-        borderRadius: BorderRadius.circular(40),
+        color: theme.surface, // Only the pill has this color — rest is transparent
+        borderRadius: BorderRadius.circular(32), // Slightly smaller radius to match smaller bar
         border: Border.all(
           color: AppColors.amber.withValues(alpha: 0.2),
           width: 1.5,
@@ -111,6 +116,7 @@ class _ExpandingChipBar extends StatelessWidget {
 }
 
 /// Individual expanding chip — animates width and shows label when active.
+/// Reduced size for more compact appearance.
 class _ExpandingChip extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
@@ -132,27 +138,22 @@ class _ExpandingChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Colors based on active state
-    // Brand accent colors (yellow/amber) don't change with theme
     final bgColor = isActive 
         ? (isCenter ? AppColors.yellow : AppColors.amber) 
         : Colors.transparent;
     
-    // Active icon/text colors contrast with the brand accent backgrounds
     final iconColor = isActive 
         ? (isCenter ? AppColors.darkTextPrimary : AppColors.darkTextPrimary) 
-        : theme.textPrimary; // Inactive tabs use theme-aware text color
+        : theme.textPrimary;
     
     final labelColor = isActive 
         ? (isCenter ? AppColors.darkTextPrimary : AppColors.darkTextPrimary) 
-        : theme.textPrimary; // Inactive tabs use theme-aware text color
+        : theme.textPrimary;
     
-    // Inactive border uses theme-aware surface color for subtle contrast
     final inactiveBorderColor = theme.surfaceElevated.withValues(alpha: 0.5);
 
     return GestureDetector(
       onTap: () {
-        // Haptic feedback for premium feel
         HapticFeedback.lightImpact();
         onTap();
       },
@@ -160,19 +161,19 @@ class _ExpandingChip extends StatelessWidget {
         duration: const Duration(milliseconds: 380),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 20 : 12,
-          vertical: 10,
+          horizontal: isActive ? 16 : 10, // Reduced from 20/12
+          vertical: 8, // Reduced from 10
         ),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(24), // Reduced from 30
           boxShadow: isActive
               ? [
                   BoxShadow(
                     color: (isCenter ? AppColors.yellow : AppColors.amber)
                         .withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+                    blurRadius: 16, // Reduced from 20
+                    spreadRadius: 1, // Reduced from 2
                   ),
                 ]
               : null,
@@ -189,10 +190,10 @@ class _ExpandingChip extends StatelessWidget {
             Icon(
               isActive ? activeIcon : icon,
               color: iconColor,
-              size: 24,
+              size: 20, // Reduced from 24
             ),
             if (isActive) ...[
-              const SizedBox(width: 10),
+              const SizedBox(width: 8), // Reduced from 10
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
                 opacity: isActive ? 1.0 : 0.0,
@@ -201,7 +202,7 @@ class _ExpandingChip extends StatelessWidget {
                   style: TextStyle(
                     color: labelColor,
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: 12, // Reduced from 14
                     letterSpacing: 0.2,
                   ),
                 ),
