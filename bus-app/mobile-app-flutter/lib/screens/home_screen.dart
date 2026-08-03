@@ -1,13 +1,13 @@
+// lib/screens/home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:convert';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
-import '../utils/constants.dart';
 import '../models/route_detail_model.dart';
+import '../services/cache_service.dart';
 import 'routes_screen.dart';
 import 'tracking_screen.dart';
 import 'booking_screen.dart';
@@ -16,6 +16,10 @@ import 'profile_screen.dart';
 import 'help_support_screen.dart';
 import 'route_detail_screen.dart';
 
+/// Home screen — the main landing page after login.
+/// Displays a greeting header, hero banner, quick actions,
+/// popular stops (loaded from offline-first cache), and a
+/// private bus rental preview section.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -24,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Mixed list of stops from all routes (max 7 for display)
   List<_StopWithRoute> _popularStops = [];
   bool _isLoadingStops = true;
 
@@ -43,62 +48,84 @@ class _HomeScreenState extends State<HomeScreen> {
       // Take first character of the first two name parts
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    // Single name — just the first character
+    // Single name — just the first character, or fallback to 'R'
     return fullName.isNotEmpty ? fullName[0].toUpperCase() : 'R';
   }
 
+  /// Loads popular stops using the offline-first cache.
+  /// Reads from local SQLite instantly (works without internet),
+  /// then syncs with the backend in the background. If backend
+  /// data has changed, the UI refreshes automatically via the
+  /// onDataChanged callback.
   Future<void> _loadRoutesAndStops() async {
     try {
-      final response = await http.get(Uri.parse('${AppConstants.baseUrl}/routes'));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        final routes = data.map((j) => RouteDetail.fromJson(j)).toList();
-
-        final List<List<_StopWithRoute>> stopsByRoute = [];
-        for (final route in routes) {
-          final routeStops = <_StopWithRoute>[];
-          for (final stop in route.stops) {
-            if (stop.primaryImage != null) {
-              routeStops.add(_StopWithRoute(stop: stop, parentRoute: route));
-            }
+      final routes = await CacheService.getRoutes(
+        onDataChanged: (freshRoutes) {
+          // Backend had new data — rebuild the mixed stops list
+          // and refresh the UI so the user sees the latest stops
+          if (mounted) {
+            setState(() {
+              _popularStops = _buildMixedStops(freshRoutes);
+            });
           }
-          if (routeStops.isNotEmpty) {
-            stopsByRoute.add(routeStops);
-          }
-        }
+        },
+      );
 
-        final List<_StopWithRoute> mixedStops = [];
-        if (stopsByRoute.isNotEmpty) {
-          int maxPerRoute = 7;
-          List<int> takenCounts = List.filled(stopsByRoute.length, 0);
-
-          while (mixedStops.length < 7) {
-            bool addedAny = false;
-            for (int i = 0; i < stopsByRoute.length; i++) {
-              if (mixedStops.length >= 7) break;
-              if (takenCounts[i] < stopsByRoute[i].length && takenCounts[i] < maxPerRoute) {
-                mixedStops.add(stopsByRoute[i][takenCounts[i]]);
-                takenCounts[i]++;
-                addedAny = true;
-              }
-            }
-            if (!addedAny) break;
-          }
-        }
-
-        if (mounted) {
-          setState(() {
-            _popularStops = mixedStops;
-            _isLoadingStops = false;
-          });
-        }
-      } else {
-        if (mounted) setState(() => _isLoadingStops = false);
+      if (mounted) {
+        setState(() {
+          _popularStops = _buildMixedStops(routes);
+          _isLoadingStops = false;
+        });
       }
     } catch (_) {
+      // If cache is completely empty (first launch with no internet),
+      // just show the empty state — no crash, no error
       if (mounted) setState(() => _isLoadingStops = false);
     }
+  }
+
+  /// Builds a mixed list of stops from all routes using round-robin selection.
+  /// This ensures the popular stops section shows variety instead of
+  /// just the first route's stops. Takes a maximum of 7 stops total.
+  /// Extracted into its own method so it can be reused when the cache
+  /// updates with fresh backend data.
+  List<_StopWithRoute> _buildMixedStops(List<RouteDetail> routes) {
+    // Group stops that have images by their parent route
+    final List<List<_StopWithRoute>> stopsByRoute = [];
+    for (final route in routes) {
+      final routeStops = <_StopWithRoute>[];
+      for (final stop in route.stops) {
+        if (stop.primaryImage != null) {
+          routeStops.add(_StopWithRoute(stop: stop, parentRoute: route));
+        }
+      }
+      if (routeStops.isNotEmpty) {
+        stopsByRoute.add(routeStops);
+      }
+    }
+
+    // Round-robin: take one stop from each route, then repeat
+    // Example with 2 routes: [A1, B1, A2, B2, A3, B3, A4]
+    final List<_StopWithRoute> mixedStops = [];
+    if (stopsByRoute.isNotEmpty) {
+      int maxPerRoute = 7;
+      List<int> takenCounts = List.filled(stopsByRoute.length, 0);
+
+      while (mixedStops.length < 7) {
+        bool addedAny = false;
+        for (int i = 0; i < stopsByRoute.length; i++) {
+          if (mixedStops.length >= 7) break;
+          if (takenCounts[i] < stopsByRoute[i].length && takenCounts[i] < maxPerRoute) {
+            mixedStops.add(stopsByRoute[i][takenCounts[i]]);
+            takenCounts[i]++;
+            addedAny = true;
+          }
+        }
+        if (!addedAny) break; // No more stops available from any route
+      }
+    }
+
+    return mixedStops;
   }
 
   @override
@@ -158,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
                         ),
-                        // Center the initials text inside the avatar container
                         alignment: Alignment.center,
                         child: Text(
                           userInitials,
@@ -231,6 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               // ---------- QUICK ACTIONS ----------
+              // Order: Book a Trip → Live Location → Private Booking → Help & Support
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 child: Row(
@@ -275,6 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               // ---------- POPULAR STOPS ----------
+              // Loaded from offline-first cache — works without internet
               _SectionHeader(title: 'Popular Stops', theme: theme),
               SizedBox(
                 height: 240,
@@ -363,6 +391,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// Simple data class to bundle a TourStop with its parent RouteDetail
+/// so we can navigate to the correct route when a stop is tapped.
 class _StopWithRoute {
   final TourStop stop;
   final RouteDetail parentRoute;
@@ -383,6 +413,8 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+/// Circular quick-action button with an icon above a label.
+/// Uses BoxShape.circle for a fully round icon container.
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -414,6 +446,10 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
+/// Horizontal card displaying a popular stop — image fills the entire card
+/// with the stop name overlaid as a caption at the bottom.
+/// Uses CachedNetworkImage so images load instantly from cache after first download.
+/// Tapping navigates to the RouteDetailScreen scrolled to this specific stop.
 class _StopCard extends StatelessWidget {
   final TourStop stop;
   final RouteDetail parentRoute;
@@ -447,7 +483,8 @@ class _StopCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // CachedNetworkImage — loads instantly from cache after first download
+              // CachedNetworkImage — loads instantly from cache after first download.
+              // Works fully offline once cached.
               stop.primaryImage != null
                   ? CachedNetworkImage(
                       imageUrl: stop.primaryImage!,
@@ -467,6 +504,7 @@ class _StopCard extends StatelessWidget {
                       color: theme.surfaceElevated,
                       child: const Icon(Icons.image, color: AppColors.grey, size: 40),
                     ),
+              // Stop name overlaid at the bottom of the image as a caption
               Positioned(
                 bottom: 0,
                 left: 0,

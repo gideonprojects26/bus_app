@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart'; // Make sure shared_preferences is in pubspec.yaml
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking_model.dart';
 
+/// Manages the user's booking state — fetching from backend,
+/// cancelling bookings, and providing filtered lists for the
+/// Activity screen tabs.
+///
+/// OFFLINE SUPPORT: The setBookings() method allows the offline
+/// cache service to populate bookings from local SQLite storage
+/// before the backend fetch completes.
 class BookingProvider with ChangeNotifier {
   List<BookingModel> _bookings = [];
   bool _isLoading = false;
@@ -26,8 +33,17 @@ class BookingProvider with ChangeNotifier {
   /// Retrieve stored authentication token from device storage
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    // Change 'token' below to the exact key name you used when saving the token during login
     return prefs.getString('auth_token') ?? prefs.getString('userToken');
+  }
+
+  /// Populates bookings directly from a provided list.
+  /// Used by the offline cache to instantly display cached
+  /// bookings before the backend fetch completes. Sets loading
+  /// to false since data is ready immediately.
+  void setBookings(List<BookingModel> bookings) {
+    _bookings = bookings;
+    _isLoading = false;
+    notifyListeners();
   }
 
   /// Fetch user bookings from backend API
@@ -53,7 +69,7 @@ class BookingProvider with ChangeNotifier {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // <--- FIX: Added Authorization header
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -74,16 +90,23 @@ class BookingProvider with ChangeNotifier {
     }
   }
 
+  /// Adds a newly created booking to the list.
+  /// Called after successful payment to immediately show
+  /// the booking without waiting for a full re-fetch.
   void addBooking(BookingModel booking) {
     _bookings.add(booking);
     notifyListeners();
   }
 
+  /// Cancels a booking locally (optimistic update) and attempts
+  /// to update the backend. If the backend call fails, the local
+  /// state has already been changed for instant UI feedback.
   Future<void> cancelBooking(String id) async {
     final index = _bookings.indexWhere((b) => b.id == id);
     if (index != -1) {
       final old = _bookings[index];
 
+      // Optimistic update — change status immediately
       _bookings[index] = BookingModel(
         id: old.id,
         draft: old.draft,
@@ -100,7 +123,7 @@ class BookingProvider with ChangeNotifier {
           Uri.parse('https://bus-app-backend-hrxf.onrender.com/api/bookings/$id/cancel'),
           headers: {
             'Content-Type': 'application/json',
-            if (token != null) 'Authorization': 'Bearer $token', // <--- FIX: Added Authorization header
+            if (token != null) 'Authorization': 'Bearer $token',
           },
         );
       } catch (e) {

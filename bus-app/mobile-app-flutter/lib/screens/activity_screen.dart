@@ -4,6 +4,7 @@ import '../utils/app_colors.dart';
 import '../providers/booking_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/booking_model.dart';
+import '../services/cache_service.dart';
 import '../widgets/app_pill_button.dart';
 import '../widgets/app_icon_avatar.dart';
 import 'routes_screen.dart';
@@ -11,6 +12,11 @@ import 'receipt_screen.dart';
 
 /// Screen displaying user's booking activity across four tabs:
 /// Bookings, Pending, Completed, Cancelled.
+///
+/// DATA: Uses offline-first approach — loads bookings from local
+/// SQLite cache instantly, then fetches fresh data from backend
+/// via BookingProvider. If the fetch succeeds and data differs,
+/// the cache is updated. Works fully offline.
 ///
 /// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
 /// surface colors and text colors instead of hardcoded Color(0xFF1A1A1A)/AppColors.white.
@@ -26,12 +32,64 @@ class _ActivityScreenState extends State<ActivityScreen> {
   void initState() {
     super.initState();
 
-    // WidgetsBinding guarantees the widget is fully built before we make the provider call.
-    // This prevents "Cannot update Provider during build" exceptions in Flutter.
+    // Load bookings using offline-first cache.
+    // WidgetsBinding guarantees the widget is fully built before
+    // we make provider calls, preventing "Cannot update Provider
+    // during build" exceptions.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Calls our backend API through BookingProvider to retrieve saved PostgreSQL records
-      Provider.of<BookingProvider>(context, listen: false).fetchUserBookings();
+      _loadBookings();
     });
+  }
+
+  /// Loads bookings from local SQLite cache first (instant, works offline),
+  /// then fetches fresh data from the backend via BookingProvider.
+  /// If the backend returns different data, the cache is updated
+  /// and the UI refreshes automatically.
+  Future<void> _loadBookings() async {
+    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+
+    // Step 1: Try loading from cache first — instant display
+    try {
+      final cachedBookings = await CacheService.getBookings(
+        apiFetch: () async {
+          // Fetch fresh bookings from backend
+          await bookingProvider.fetchUserBookings();
+          // Return the raw booking data for cache comparison
+          return bookingProvider.allBookings
+              .map((b) => {
+                    'id': b.id,
+                    'draft': b.draft,
+                    'paymentMethod': b.paymentMethod,
+                    'status': b.status,
+                    'createdAt': b.createdAt,
+                  })
+              .toList();
+        },
+        onDataChanged: (freshBookings) {
+          // Backend data differs from cache — update the provider
+          // so the UI shows the latest bookings
+          if (mounted) {
+            // Convert raw maps back to BookingModel objects
+            final models = freshBookings
+                .map((b) => BookingModel.fromJson(Map<String, dynamic>.from(b)))
+                .toList();
+            bookingProvider.setBookings(models);
+          }
+        },
+      );
+
+      // Step 2: If cache had data, populate the provider immediately
+      // so the user sees bookings even before the backend fetch completes
+      if (cachedBookings.isNotEmpty && mounted) {
+        final models = cachedBookings
+            .map((b) => BookingModel.fromJson(Map<String, dynamic>.from(b)))
+            .toList();
+        bookingProvider.setBookings(models);
+      }
+    } catch (_) {
+      // Cache might be empty on first launch — BookingProvider
+      // will handle showing the loading/error states
+    }
   }
 
   @override
@@ -66,13 +124,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
         body: Consumer<BookingProvider>(
           builder: (context, bookingProvider, _) {
             // Show a centered loading spinner while the API call is in-flight
-            if (bookingProvider.isLoading) {
+            if (bookingProvider.isLoading && bookingProvider.allBookings.isEmpty) {
               return const Center(
                 child: CircularProgressIndicator(color: AppColors.yellow),
               );
             }
 
             // Show an error banner with a Retry button if network request failed
+            // AND no cached data is available
             if (bookingProvider.errorMessage != null && bookingProvider.allBookings.isEmpty) {
               return Center(
                 child: Column(
@@ -84,7 +143,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: () => bookingProvider.fetchUserBookings(),
+                      onPressed: () => _loadBookings(),
                       child: const Text('Retry Connection'),
                     ),
                   ],
@@ -92,7 +151,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
               );
             }
 
-            // Render tab views once data is successfully fetched — passing theme down
+            // Render tab views once data is successfully fetched — passing theme down.
+            // If loaded from cache, these show immediately even without internet.
             return TabBarView(
               children: [
                 _BookingList(bookings: bookingProvider.allBookings, theme: theme),
@@ -143,7 +203,7 @@ class _BookingList extends StatelessWidget {
                     Container(
                       height: 14,
                       decoration: BoxDecoration(
-                        color: theme.background, // was Color(0xFF2A2A2A) — now theme-aware (skeleton placeholder uses background for contrast)
+                        color: theme.background, // skeleton placeholder uses background for contrast
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -151,7 +211,7 @@ class _BookingList extends StatelessWidget {
                     Container(
                       height: 14,
                       decoration: BoxDecoration(
-                        color: theme.background, // was Color(0xFF2A2A2A) — now theme-aware
+                        color: theme.background,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -161,7 +221,7 @@ class _BookingList extends StatelessWidget {
                       width: 140,
                       alignment: Alignment.centerLeft,
                       decoration: BoxDecoration(
-                        color: theme.background, // was Color(0xFF2A2A2A) — now theme-aware
+                        color: theme.background,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -171,7 +231,7 @@ class _BookingList extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 'No Trips Here Yet',
-                style: TextStyle(color: theme.textPrimary, fontSize: 17, fontWeight: FontWeight.w700), // was AppColors.white — now theme-aware
+                style: TextStyle(color: theme.textPrimary, fontSize: 17, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
               const Text(
@@ -191,7 +251,7 @@ class _BookingList extends StatelessWidget {
       );
     }
 
-    // Render populated list of bookings
+    // Render populated list of bookings (from cache or fresh backend data)
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: bookings.length,
@@ -203,7 +263,7 @@ class _BookingList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
+            color: theme.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
           ),
@@ -224,7 +284,7 @@ class _BookingList extends StatelessWidget {
                       children: [
                         Text(
                           draft.routeName,
-                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14), // was AppColors.white — now theme-aware
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         Text(
                           '${draft.currency} ${draft.totalPrice.toStringAsFixed(draft.isLocal ? 0 : 2)}',

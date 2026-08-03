@@ -7,7 +7,6 @@ import '../models/booking_model.dart';
 import '../services/receipt_pdf_service.dart';
 import 'main_navigation.dart';
 import '../widgets/app_card_shadow.dart';
-import '../widgets/app_price_text.dart';
 
 /// Receipt screen displaying booking confirmation details, a QR code
 /// for the booking, and options to download the receipt or return home.
@@ -30,9 +29,9 @@ class ReceiptScreen extends StatelessWidget {
         'BookingID:${booking.id}|Route:${draft.routeName}|Stop:${draft.pickupStop}|Date:${draft.date}|Passengers:${draft.passengers}';
 
     return Scaffold(
-      backgroundColor: theme.background, // now theme-aware
+      backgroundColor: theme.background,
       appBar: AppBar(
-        title: const Text('Booking Receipt'),
+        title: const Text('BOOKING RECEIPT'),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -45,23 +44,24 @@ class ReceiptScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   boxShadow: AppCardShadow.soft,
-                  color: theme.surface, // was Color(0xFF1A1A1A) — now theme-aware
+                  color: theme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.yellow.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.check_circle, color: AppColors.yellow, size: 48), // yellow stays as brand accent
+                    const Icon(Icons.check_circle, color: AppColors.yellow, size: 48),
                     const SizedBox(height: 10),
+                    // Only "Booking Confirmed" keeps normal casing
                     Text(
                       'Booking Confirmed',
-                      style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold), // was AppColors.white — now theme-aware
+                      style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 20),
                     // QR Code — white background container needed for scanner readability
                     Container(
                       padding: const EdgeInsets.all(12),
-                      color: AppColors.white, // QR needs white background for scanners to read reliably
+                      color: AppColors.white,
                       child: QrImageView(
                         data: qrData,
                         version: QrVersions.auto,
@@ -69,32 +69,26 @@ class ReceiptScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    _ReceiptRow(label: 'Booking ID', value: booking.id, theme: theme),
-                    _ReceiptRow(label: 'Tour', value: draft.routeName, theme: theme),
-                    _ReceiptRow(label: 'Pickup Stop', value: draft.pickupStop, theme: theme),
-                    _ReceiptRow(label: 'Date', value: '${draft.date.day}/${draft.date.month}/${draft.date.year}', theme: theme),
-                    _ReceiptRow(label: 'Time', value: draft.time, theme: theme),
-                    _ReceiptRow(label: 'Passengers', value: '${draft.passengers}', theme: theme),
-                    _ReceiptRow(label: 'Type', value: draft.isLocal ? 'Local' : 'International', theme: theme),
-                    _ReceiptRow(label: 'Payment Method', value: booking.paymentMethod, theme: theme),
-                    const SizedBox(height: 10),
-                    const Text('Total Paid', style: TextStyle(color: AppColors.grey, fontSize: 12)), // grey stays as static accent
-                    const SizedBox(height: 4),
-                    AppPriceText(currency: draft.currency, amount: draft.totalPrice, isLocal: draft.isLocal, fontSize: 28),
+                    // All labels and values in UPPERCASE for a clean receipt look
+                    _ReceiptRow(label: 'BOOKING ID', value: booking.id.toUpperCase(), theme: theme),
+                    _ReceiptRow(label: 'TOUR', value: draft.routeName.toUpperCase(), theme: theme),
+                    _ReceiptRow(label: 'PICKUP STOP', value: draft.pickupStop.toUpperCase(), theme: theme),
+                    _ReceiptRow(label: 'DATE', value: '${draft.date.day}/${draft.date.month}/${draft.date.year}', theme: theme),
+                    _ReceiptRow(label: 'TIME', value: draft.time.toUpperCase(), theme: theme),
+                    _ReceiptRow(label: 'PASSENGERS', value: '${draft.passengers}', theme: theme),
+                    _ReceiptRow(label: 'TYPE', value: draft.isLocal ? 'LOCAL' : 'INTERNATIONAL', theme: theme),
+                    _ReceiptRow(label: 'PAYMENT METHOD', value: booking.paymentMethod.toUpperCase(), theme: theme),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
               // --- Download Digital Receipt Button ---
-              // Generates a professional PDF receipt using ReceiptPdfService
-              // and opens the native share sheet for saving/printing/sharing.
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      // Show a brief loading indicator
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Generating receipt...'),
@@ -102,16 +96,11 @@ class ReceiptScreen extends StatelessWidget {
                           backgroundColor: AppColors.yellow,
                         ),
                       );
-
-                      // Generate PDF and trigger share sheet
                       await ReceiptPdfService.downloadReceipt(booking);
                     } catch (e) {
-                      // Handle any errors during PDF generation
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          // ignore: prefer_const_constructors
-                          SnackBar(
-                            // ignore: prefer_const_constructors
+                          const SnackBar(
                             content: Text('Could not generate receipt. Please try again.'),
                             backgroundColor: AppColors.red,
                           ),
@@ -121,11 +110,11 @@ class ReceiptScreen extends StatelessWidget {
                   },
                   icon: Icon(
                     Icons.download_rounded,
-                    color: theme.textPrimary, // matches text color for outlined button consistency
+                    color: theme.textPrimary,
                     size: 24,
                   ),
                   label: Text(
-                    'Download Digital Receipt',
+                    'DOWNLOAD DIGITAL RECEIPT',
                     style: TextStyle(
                       color: theme.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -151,7 +140,7 @@ class ReceiptScreen extends StatelessWidget {
                       (route) => false,
                     );
                   },
-                  child: const Text('Done'),
+                  child: const Text('DONE'),
                 ),
               ),
             ],
@@ -163,11 +152,11 @@ class ReceiptScreen extends StatelessWidget {
 }
 
 /// Row widget for displaying receipt detail labels and values.
-/// Now theme-aware — accepts ThemeProvider for text colors.
+/// All values are displayed in uppercase for a clean receipt style.
 class _ReceiptRow extends StatelessWidget {
   final String label;
   final String value;
-  final ThemeProvider theme; // added for light/dark mode support
+  final ThemeProvider theme;
 
   const _ReceiptRow({
     required this.label,
@@ -184,11 +173,11 @@ class _ReceiptRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(color: AppColors.grey, fontSize: 13), // grey stays as static accent
+            style: const TextStyle(color: AppColors.grey, fontSize: 13),
           ),
           Text(
             value,
-            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600), // was AppColors.white — now theme-aware
+            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
       ),

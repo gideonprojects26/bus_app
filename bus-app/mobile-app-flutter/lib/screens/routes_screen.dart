@@ -1,13 +1,11 @@
 // lib/screens/routes_screen.dart
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
-import '../utils/constants.dart';
 import '../models/route_detail_model.dart';
+import '../services/cache_service.dart';
 import '../widgets/stop_image_slideshow.dart';
 import '../widgets/app_back_button.dart';
 import 'route_detail_screen.dart';
@@ -15,6 +13,10 @@ import 'route_detail_screen.dart';
 /// Screen displaying all available tour routes with expandable stop lists.
 /// Each route shows a name, description, auto-playing image slideshow,
 /// and an expandable section listing all tour stops.
+///
+/// DATA: Uses offline-first CacheService — loads from local SQLite
+/// instantly, then syncs with the backend in the background. Works
+/// fully offline once data has been cached.
 ///
 /// THEME: Converted to be theme-aware (light/dark). Uses ThemeProvider for
 /// surface colors and text colors instead of hardcoded AppColors.black2/white.
@@ -26,10 +28,10 @@ class RoutesScreen extends StatefulWidget {
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
-  // List to store all available tour routes
+  // List to store all available tour routes (from cache or backend)
   List<RouteDetail> _routes = [];
   
-  // Loading state to show spinner while fetching data
+  // Loading state to show spinner while reading from cache on first launch
   bool _isLoading = true;
   
   // Error message to display if something goes wrong
@@ -38,46 +40,49 @@ class _RoutesScreenState extends State<RoutesScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch routes from backend when screen initializes
+    // Fetch routes using offline-first cache
     _fetchRoutes();
   }
 
-  // Fetch all available routes from the backend API
+  /// Loads routes using the offline-first cache.
+  /// Reads from local SQLite instantly (works without internet),
+  /// then syncs with the backend in the background. If backend
+  /// data has changed, the UI refreshes automatically via the
+  /// onDataChanged callback.
   Future<void> _fetchRoutes() async {
-    // Reset state before fetching
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Make HTTP GET request to fetch routes
-      final response = await http.get(Uri.parse('${AppConstants.baseUrl}/routes'));
-      
-      // Debug line - prints raw API response for troubleshooting
-      // Remove this once the app is working correctly in production
-      debugPrint('ROUTES RESPONSE: ${response.body}');
+      final routes = await CacheService.getRoutes(
+        onDataChanged: (freshRoutes) {
+          // Backend had new data — refresh the list so the user
+          // sees the latest routes without manual refresh
+          if (mounted) {
+            setState(() {
+              _routes = freshRoutes;
+            });
+          }
+        },
+      );
 
-      if (response.statusCode == 200) {
-        // Parse JSON response into RouteDetail model objects
-        final List<dynamic> data = json.decode(response.body);
+      if (mounted) {
         setState(() {
-          _routes = data.map((j) => RouteDetail.fromJson(j)).toList();
-          _isLoading = false;
-        });
-      } else {
-        // Handle non-200 responses from server
-        setState(() {
-          _errorMessage = 'Failed to load routes from server.';
+          _routes = routes;
           _isLoading = false;
         });
       }
     } catch (e) {
-      // Handle network errors or JSON parsing errors
-      setState(() {
-        _errorMessage = 'Could not connect to network.';
-        _isLoading = false;
-      });
+      // If cache is completely empty (first launch with no internet),
+      // show a helpful error message with a retry option
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Could not load routes. Check your connection.';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -93,7 +98,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
         title: const Text('Available Routes'),
       ),
       body: _isLoading
-          // Show loading spinner while fetching data
+          // Show loading spinner while reading from cache or fetching
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.yellow), // yellow stays as brand accent
             )
@@ -112,7 +117,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
-                        // Retry button to attempt fetching routes again
+                        // Retry button — calls CacheService again which will
+                        // attempt to fetch from backend if internet is available
                         ElevatedButton(
                           onPressed: _fetchRoutes, 
                           child: const Text('Retry'),
@@ -121,7 +127,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     ),
                   ),
                 )
-              // Display list of available routes
+              // Display list of available routes (from cache or fresh backend data)
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _routes.length,
@@ -185,17 +191,19 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   
-                                  // Auto-playing image slideshow of route stops
+                                  // Auto-playing image slideshow of route stops.
+                                  // Images load from CachedNetworkImage cache — works offline.
                                   if (routeDetail.stops.isNotEmpty) 
                                     StopImageSlideshow(route: routeDetail),
                                 ],
                               ),
                             ),
                             
-                            // Expandable section showing all stops on this route
-                            // Expands in place instead of navigating to a separate screen
+                            // Expandable section showing all stops on this route.
+                            // Expands in place instead of navigating to a separate screen.
                             // Tapping an individual stop opens the full detail screen,
-                            // automatically scrolled to that specific stop
+                            // automatically scrolled to that specific stop.
+                            // All stop data (names, descriptions) comes from the cache.
                             ExpansionTile(
                               title: const Text(
                                 'View Stops on this Route', 
@@ -213,7 +221,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                 
                                 return ListTile(
                                   onTap: () {
-                                    // Navigate to route detail screen, scrolled to this specific stop
+                                    // Navigate to route detail screen, scrolled to this specific stop.
+                                    // Passes the full route object (with cached stops, images, descriptions)
+                                    // so the detail screen works fully offline.
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -237,7 +247,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                       ),
                                     ),
                                   ),
-                                  // Stop name
+                                  // Stop name — loaded from cache, works offline
                                   title: Text(
                                     stop.name, 
                                     style: TextStyle(
