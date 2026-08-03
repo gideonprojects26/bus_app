@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+// ignore: unused_import
+import 'dart:math';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/app_colors.dart';
@@ -23,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Flattened list of all stops across all routes (max 7 for display)
+  // Mixed list of stops from all routes (max 7 for display)
   List<_StopWithRoute> _popularStops = [];
   bool _isLoadingStops = true;
 
@@ -33,9 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadRoutesAndStops();
   }
 
-  /// Fetches all routes from the backend, then flattens their stops
-  /// into a single list. Each stop keeps a reference to its parent route
-  /// so we can navigate to the correct RouteDetailScreen on tap.
+  /// Fetches all routes from the backend, then builds a mixed list of stops
+  /// by taking evenly from each route (round-robin) so popular stops section
+  /// shows variety instead of just the first route's stops.
   Future<void> _loadRoutesAndStops() async {
     try {
       final response = await http.get(Uri.parse('${AppConstants.baseUrl}/routes'));
@@ -44,23 +46,47 @@ class _HomeScreenState extends State<HomeScreen> {
         final List<dynamic> data = json.decode(response.body);
         final routes = data.map((j) => RouteDetail.fromJson(j)).toList();
 
-        // Flatten all stops from all routes, keeping track of which route they belong to
-        final List<_StopWithRoute> allStops = [];
+        // Group stops with images by their parent route
+        final List<List<_StopWithRoute>> stopsByRoute = [];
         for (final route in routes) {
+          final routeStops = <_StopWithRoute>[];
           for (final stop in route.stops) {
-            // Only include stops that have at least one image
             if (stop.primaryImage != null) {
-              allStops.add(_StopWithRoute(stop: stop, parentRoute: route));
+              routeStops.add(_StopWithRoute(stop: stop, parentRoute: route));
             }
+          }
+          if (routeStops.isNotEmpty) {
+            stopsByRoute.add(routeStops);
           }
         }
 
-        // Take at most 7 stops for the popular section
-        final popularStops = allStops.take(7).toList();
+        // Round-robin: take one stop from each route, then repeat
+        // This ensures stops are mixed from all routes evenly
+        final List<_StopWithRoute> mixedStops = [];
+        if (stopsByRoute.isNotEmpty) {
+          int maxPerRoute = 7; // Safety limit per route
+          // ignore: unused_local_variable
+          int routeIndex = 0;
+          List<int> takenCounts = List.filled(stopsByRoute.length, 0);
+
+          while (mixedStops.length < 7) {
+            bool addedAny = false;
+            for (int i = 0; i < stopsByRoute.length; i++) {
+              if (mixedStops.length >= 7) break;
+              if (takenCounts[i] < stopsByRoute[i].length && takenCounts[i] < maxPerRoute) {
+                mixedStops.add(stopsByRoute[i][takenCounts[i]]);
+                takenCounts[i]++;
+                addedAny = true;
+              }
+            }
+            // If no more stops can be added from any route, exit
+            if (!addedAny) break;
+          }
+        }
 
         if (mounted) {
           setState(() {
-            _popularStops = popularStops;
+            _popularStops = mixedStops;
             _isLoadingStops = false;
           });
         }
@@ -107,7 +133,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: theme.textPrimary),
                         ),
                         const SizedBox(height: 4),
-                        // Now a const Row since all children are const
                         const Row(
                           children: [
                             Icon(Icons.location_on_rounded, color: AppColors.yellow, size: 16),
@@ -177,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                                     decoration: BoxDecoration(color: AppColors.yellow, borderRadius: BorderRadius.circular(12)),
-                                    child: const Text('Book Now', style: TextStyle(color: AppColors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+                                    child: const Text('Our Routes', style: TextStyle(color: AppColors.black, fontWeight: FontWeight.bold, fontSize: 13)),
                                   ),
                                 ),
                               ],
@@ -191,7 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               // ---------- QUICK ACTIONS ----------
-              // Order: Book a Trip → Live Location → Private Booking → Help & Support
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 child: Row(
@@ -238,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // ---------- POPULAR STOPS ----------
               _SectionHeader(title: 'Popular Stops', theme: theme),
               SizedBox(
-                height: 210,
+                height: 240, // Increased from 210 to fit larger cards
                 child: _isLoadingStops
                     ? const Center(child: CircularProgressIndicator(color: AppColors.yellow))
                     : _popularStops.isEmpty
@@ -349,7 +373,6 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// Circular quick-action button with an icon above a label.
-/// Now uses BoxShape.circle for a fully round icon container.
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -369,7 +392,7 @@ class _QuickAction extends StatelessWidget {
             height: 56,
             decoration: BoxDecoration(
               color: theme.surface,
-              shape: BoxShape.circle, // was BorderRadius.circular(16) — now fully circular
+              shape: BoxShape.circle,
               border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
             ),
             child: Icon(icon, color: AppColors.yellow, size: 24),
@@ -382,7 +405,8 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-/// Horizontal card displaying a popular stop with its image and name.
+/// Horizontal card displaying a popular stop — image fills the entire card
+/// with the stop name overlaid as a caption at the bottom.
 /// Tapping navigates to the RouteDetailScreen scrolled to this stop.
 class _StopCard extends StatelessWidget {
   final TourStop stop;
@@ -395,7 +419,6 @@ class _StopCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigate to route detail screen, auto-scrolled to this specific stop
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -407,59 +430,65 @@ class _StopCard extends StatelessWidget {
         );
       },
       child: Container(
-        width: 220,
+        width: 240, // Increased from 220
+        height: 200, // Full card height — image fills it all
         margin: const EdgeInsets.only(right: 14),
         decoration: BoxDecoration(
-          color: theme.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.amber.withValues(alpha: 0.25)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stop image — uses primaryImage (first image), falls back to placeholder
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: SizedBox(
-                height: 130,
-                width: double.infinity,
-                child: stop.primaryImage != null
-                    ? Image.network(
-                        stop.primaryImage!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            color: theme.surfaceElevated,
-                            child: const Center(
-                              child: CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 2),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: theme.surfaceElevated,
-                            child: const Icon(Icons.image, color: AppColors.grey, size: 40),
-                          );
-                        },
-                      )
-                    : Container(
-                        color: theme.surfaceElevated,
-                        child: const Icon(Icons.image, color: AppColors.grey, size: 40),
-                      ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Image fills the entire card
+              stop.primaryImage != null
+                  ? Image.network(
+                      stop.primaryImage!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: theme.surfaceElevated,
+                          child: const Center(
+                            child: CircularProgressIndicator(color: AppColors.yellow, strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: theme.surfaceElevated,
+                          child: const Icon(Icons.image, color: AppColors.grey, size: 40),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: theme.surfaceElevated,
+                      child: const Icon(Icons.image, color: AppColors.grey, size: 40),
+                    ),
+
+              // Stop name caption at the bottom — clean, no dark overlay
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Text(
+                    stop.name,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
-            // Stop name
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                stop.name,
-                style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
