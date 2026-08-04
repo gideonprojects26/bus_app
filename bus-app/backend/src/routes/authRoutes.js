@@ -67,8 +67,8 @@ router.post(
 // ---------- CREATE ADMIN ROUTE (Protected & Admin-Only) ----------
 router.post(
   '/create-admin',
-  /*protect,
-  adminOnly,*/
+  protect,
+  adminOnly,
   [
     body('fullName')
       .trim()

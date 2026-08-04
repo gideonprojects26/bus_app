@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   });
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/auth/admin-login', { email, password });
     const { token, user: loggedInUser } = response.data;
 
     if (loggedInUser.role !== 'admin') {
