@@ -30,6 +30,8 @@ dependencies:
   sqflite: ^2.3.0          # ← ADD THIS
   path: ^1.8.0 
   qr: ^3.0.2             # ← ADD THIS
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
 
 
 dev_dependencies:

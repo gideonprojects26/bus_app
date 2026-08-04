@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "728869962554",
+    "project_id": "hop-off-hop-on-k-bus",
+    "storage_bucket": "hop-off-hop-on-k-bus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:728869962554:android:5ffd14283a03ec38898603",
+        "android_client_info": {
+          "package_name": "com.promotesafaris.hopoffhoponbus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCU3PT7mfGhpoCu174ANMYC33zRSTUxHw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
