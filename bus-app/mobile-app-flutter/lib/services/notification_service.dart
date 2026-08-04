@@ -102,7 +102,7 @@ class NotificationService {
   static Future<void> showWelcome({required String name}) async {
     await _plugin.show(
       4,
-      'Welcome to HopOn HopOff! 🎉',
+      'Welcome to Hop Off Hop On Kampala Bus Tours! 🎉',
       'Hi $name! Your account has been created. Start exploring Kampala with us.',
       _generalDetails,
     );
@@ -114,7 +114,7 @@ class NotificationService {
   static Future<void> showWelcomeBack({required String name}) async {
     await _plugin.show(
       5,
-      'Welcome Back! 👋',
+      'Welcome Back! ',
       'Good to see you again, $name! Ready for your next adventure?',
       _generalDetails,
     );

@@ -278,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.confirmation_number_rounded,
-                        label: 'Book yourself a Trip',
+                        label: 'Book a Trip',
                         theme: theme,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingScreen())),
                       ),
@@ -287,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.map_rounded,
-                        label: 'Bus Live Location',
+                        label: 'Our Bus Locations',
                         theme: theme,
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
                       ),
@@ -344,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
 
               // ---------- RENT THE BUS PREVIEW ----------
-              _SectionHeader(title: 'Need a Private Bus?', theme: theme),
+              _SectionHeader(title: 'Need To Rent Our Bus?', theme: theme),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 child: Container(
