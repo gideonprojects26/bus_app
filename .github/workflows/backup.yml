@@ -22,6 +22,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18
 
+      - name: Add PostgreSQL 18 to PATH
+        run: echo "/usr/lib/postgresql/18/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
         working-directory: bus-app/backend
         run: npm install
@@ -32,4 +35,3 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-          PATH: /usr/lib/postgresql/18/bin:$PATH
