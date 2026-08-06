@@ -2,7 +2,7 @@ name: Daily Database Backup
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # Runs every day at 1 AM UTC
+    - cron: '20 1 * * *'  # Runs every day at 2 AM UTC
   workflow_dispatch:  # Also lets you run it manually with a button click
 
 jobs:
@@ -16,11 +16,11 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        working-directory: backend
+        working-directory: bus-app/backend
         run: npm install
 
       - name: Run database backup
-        working-directory: backend
+        working-directory: bus-app/backend
         run: npm run backup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
