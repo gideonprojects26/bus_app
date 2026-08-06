@@ -10,11 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - run: npm install
-      - run: npm run backup
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Run database backup
+        working-directory: backend
+        run: npm run backup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
