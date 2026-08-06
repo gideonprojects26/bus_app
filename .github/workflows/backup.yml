@@ -2,19 +2,40 @@ name: Daily Database Backup
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Runs every day at 2 AM UTC
-  workflow_dispatch:  # Also lets you run it manually with a button click
+    - cron: '20 1 * * *'  # Runs every day at 1:20 AM UTC
+  workflow_dispatch:  # Allows manual triggers
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - run: npm install
-      - run: npm run backup
+
+      - name: Install PostgreSQL 18 Client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-18
+
+      - name: Add PostgreSQL 18 to PATH
+        run: echo "/usr/lib/postgresql/18/bin" >> $GITHUB_PATH
+
+      - name: Create service account key file
+        working-directory: bus-app/backend
+        run: echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > service-account-key.json
+
+      - name: Install dependencies
+        working-directory: bus-app/backend
+        run: npm install
+
+      - name: Run database backup and upload
+        working-directory: bus-app/backend
+        run: npm run backup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
