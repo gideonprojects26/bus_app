@@ -3,7 +3,7 @@ name: Daily Database Backup
 on:
   schedule:
     - cron: '20 1 * * *'  # Runs every day at 1:20 AM UTC
-  workflow_dispatch:  # Also lets you run it manually with a button click
+  workflow_dispatch:  # Allows manual triggers
 
 jobs:
   backup:
@@ -25,11 +25,15 @@ jobs:
       - name: Add PostgreSQL 18 to PATH
         run: echo "/usr/lib/postgresql/18/bin" >> $GITHUB_PATH
 
+      - name: Create service account key file
+        working-directory: bus-app/backend
+        run: echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > service-account-key.json
+
       - name: Install dependencies
         working-directory: bus-app/backend
         run: npm install
 
-      - name: Run database backup
+      - name: Run database backup and upload
         working-directory: bus-app/backend
         run: npm run backup
         env:
